@@ -1,97 +1,357 @@
 <!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Điều Khiển IoT ESP32</title>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Parking Assist</title>
+    <link rel="stylesheet" href="style.css" />
     <script src="/socket.io/socket.io.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; text-align: center; }
-        .dashboard { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 20px; }
-        .card { background: white; padding: 20px; border-radius: 12px; width: 200px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .value { font-size: 2.5rem; font-weight: bold; color: #007bff; margin: 10px 0; }
-        .btn { padding: 10px 20px; margin: 5px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; }
-        .btn-on { background-color: #28a745; }
-        .btn-off { background-color: #dc3545; }
-        .status-dot { height: 15px; width: 15px; background-color: #bbb; border-radius: 50%; display: inline-block; }
-        .active { background-color: #28a745; }
-    </style>
-</head>
-<body>
-    <h1>🎛️ Bảng Điều Khiển IoT</h1>
-    <div class = "dashboard">
-        <div class = "card">
-            <h3>Khoảng cách</h3>
-            <div id = "dist" class = "value">--</div>
-            <span>cm</span>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="header">
+      <div class="header-content">
+        <h1 class="logo">Smart Parking Assist</h1>
+        <div class="user-info">
+          <span>Hello, <strong id="username">11111</strong></span>
+          <button class="btn-logout" onclick="logout()">Logout</button>
         </div>
-        <div class="card">
-            <h3>Ánh sáng</h3>
-            <div id="lux" class="value">--</div>
-            <span>ADC (0-4095)</span>
-        </div>
-        <div class="card">
-            <h3>Nút nhấn</h3>
-            <div id="btn-status" class="value">--</div>
-            <span id="btn-text">Chưa nhấn</span>
-        </div>
-    </div>
+      </div>
+    </header>
 
-    <hr style="margin: 40px auto; width: 80%;">
-    <div class="dashboard">
-        <div class="card">
-            <h3>💡 Relay</h3>
-            <button class="btn btn-on" onclick="sendCommand('RELAY', 'ON')">BẬT</button>
-            <button class="btn btn-off" onclick="sendCommand('RELAY', 'OFF')">TẮT</button>
+    <!-- Main Dashboard -->
+    <main class="main-container">
+      <!-- Status Cards -->
+      <div class="status-grid">
+        <div class="status-card">
+          <h3 class="card-title">Distance to Obstacle</h3>
+          <div class="card-value" id="distance">12 cm</div>
+          <span class="badge badge-danger">DANGER</span>
         </div>
-        <div class="card">
-            <h3>🔊 Buzzer</h3>
-            <button class="btn btn-on" onclick="sendCommand('BUZZER', 'ON')">KÊU</button>
-            <button class="btn btn-off" onclick="sendCommand('BUZZER', 'OFF')">TẮT</button>
+
+        <div class="status-card">
+          <h3 class="card-title">Ambient Light Level</h3>
+          <div class="card-value" id="lightLevel">693 lux</div>
         </div>
-    </div>
+
+        <div class="status-card">
+          <h3 class="card-title">Buzzer Status</h3>
+          <div class="card-value" id="buzzerStatus">ON</div>
+          <span class="badge badge-active">ACTIVE</span>
+        </div>
+
+        <div class="status-card">
+          <h3 class="card-title">Garage Lamp Status</h3>
+          <div class="card-value" id="lampStatus">OFF</div>
+          <span class="badge badge-off">OFF</span>
+        </div>
+      </div>
+
+      <!-- Time Range Buttons -->
+      <div class="time-filter">
+        <button class="btn-time" onclick="setTimeRange('1h')">
+          Last 1 hour
+        </button>
+        <button class="btn-time active" onclick="setTimeRange('24h')">
+          Last 24 hours
+        </button>
+        <button class="btn-time" onclick="setTimeRange('7d')">
+          Last 7 days
+        </button>
+      </div>
+
+      <!-- Charts Section -->
+      <div class="charts-grid">
+        <div class="chart-card">
+          <h3 class="chart-title">Distance Over Time</h3>
+          <canvas id="distanceChart"></canvas>
+        </div>
+
+        <div class="chart-card">
+          <h3 class="chart-title">Light Level Over Time</h3>
+          <canvas id="lightChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Danger Events Chart -->
+      <div class="chart-card full-width">
+        <h3 class="chart-title">Danger Events Per Day</h3>
+        <canvas id="dangerChart"></canvas>
+      </div>
+
+      <!-- Control Cards -->
+      <div class="control-grid">
+        <div class="control-card">
+          <h3 class="control-title">Product Status</h3>
+          <div class="status-info">
+            <p class="status-label">Current Status</p>
+            <p class="status-value">POWERED OFF</p>
+            <p class="status-note">Status: Product is currently powered off</p>
+          </div>
+        </div>
+
+        <div class="control-card">
+          <h3 class="control-title">Remote Activation</h3>
+          <div class="status-info">
+            <p class="status-note">
+              Status: The parking assist system is currently
+              <strong>INACTIVE</strong>
+            </p>
+          </div>
+          <button class="btn-primary" onclick="activateSystem()">
+            Activate System
+          </button>
+        </div>
+
+        <div class="control-card">
+          <h3 class="control-title">Light Control</h3>
+          <div class="threshold-control">
+            <label>Light Activation Threshold (lux)</label>
+            <input
+              type="range"
+              id="lightThreshold"
+              min="0"
+              max="2000"
+              value="860"
+              oninput="updateLightThreshold(this.value)"
+            />
+            <div class="threshold-value">
+              <span
+                >Current Threshold:
+                <strong id="lightThresholdValue">860</strong> lux</span
+              >
+            </div>
+            <p class="threshold-note">
+              How it works: When ambient light drops below
+              <strong>860 lux</strong>, the garage lamp will automatically turn
+              on.
+            </p>
+          </div>
+          <button class="btn-primary" onclick="saveThreshold()">
+            Save Threshold
+          </button>
+        </div>
+
+        <div class="control-card">
+          <h3 class="control-title">Settings</h3>
+          <div class="settings-group">
+            <label>Warning Distance Threshold (cm)</label>
+            <input
+              type="number"
+              id="warningDistance"
+              value="50"
+              class="input-field"
+            />
+          </div>
+          <div class="settings-group">
+            <label>Danger Distance Threshold (cm)</label>
+            <input
+              type="number"
+              id="dangerDistance"
+              value="20"
+              class="input-field"
+            />
+          </div>
+          <p class="threshold-note">
+            How thresholds work: If distance ≥ danger threshold →
+            <span class="badge badge-danger">DANGER</span>. Else if distance ≥
+            warning threshold →
+            <span class="badge badge-warning">WARNING</span>. Else →
+            <span class="badge badge-safe">SAFE</span>.
+          </p>
+          <button class="btn-primary" onclick="saveSettings()">
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </main>
 
     <script>
-        const socket = io();
+      const socket = io();
+      let distanceChart, lightChart, dangerChart;
+      let distanceData = [];
+      let lightData = [];
+      let timeLabels = [];
 
-        socket.on('sensor-update',(data)=>{
-            //Cap nhat so lieu
-            document.getElementById('dist').innerText = parseFloat(data.distance).toFixed(1);
-            document.getElementById('lux').innerText = data.light;
+      // Initialize Charts
+      window.onload = function () {
+        initCharts();
+        loadHistoricalData();
+      };
 
-            // cap nhat trang thai nut nhan
-            const btnState = data.btn;
-            const btnDot = document.getElementById('btn-status');
-            const btnText = document.getElementById('btn-text');
-
-            if(btnState == 1) {
-                btnDot.innerHTML = '<span class="status-dot active"></span>';
-                btnText.innerText = "Đang Nhấn";
-            } else {
-                btnDot.innerHTML = '<span class="status-dot"></span>';
-                btnText.innerText = "Nhả tay";
-            }
-        })
-        // 2. Gửi lệnh
-        function sendCommand(device, status) {
-            console.log(`🖱️ Đã gửi lệnh: ${device} -> ${status}`); // Thêm dòng này!
-            socket.emit('control-cmd', { device: device, status: status });
-        }
-
-        socket.on('button-update', (data) => {
-        const btnState = data.btn_status;
-        const btnDot = document.getElementById('btn-status');
-        const btnText = document.getElementById('btn-text');
-
-        if(btnState == 1) { // 1 = Đang Nhấn (LOW)
-            btnDot.innerHTML = '<span class="status-dot active"></span>';
-            btnText.innerText = "Đang Nhấn";
-        } else { // 0 = Nhả tay (HIGH)
-            btnDot.innerHTML = '<span class="status-dot"></span>';
-            btnText.innerText = "Nhả tay";
-        }
+      function initCharts() {
+        // Distance Chart
+        const distanceCtx = document
+          .getElementById("distanceChart")
+          .getContext("2d");
+        distanceChart = new Chart(distanceCtx, {
+          type: "line",
+          data: {
+            labels: timeLabels,
+            datasets: [
+              {
+                label: "Distance (cm)",
+                data: distanceData,
+                borderColor: "#6366f1",
+                backgroundColor: "rgba(99, 102, 241, 0.1)",
+                borderWidth: 2,
+                tension: 0.4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, max: 140 },
+            },
+          },
         });
-        
+
+        // Light Chart
+        const lightCtx = document.getElementById("lightChart").getContext("2d");
+        lightChart = new Chart(lightCtx, {
+          type: "line",
+          data: {
+            labels: timeLabels,
+            datasets: [
+              {
+                label: "Light Level (lux)",
+                data: lightData,
+                borderColor: "#10b981",
+                backgroundColor: "rgba(16, 185, 129, 0.1)",
+                borderWidth: 2,
+                tension: 0.4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, max: 1000 },
+            },
+          },
+        });
+
+        // Danger Events Chart
+        const dangerCtx = document
+          .getElementById("dangerChart")
+          .getContext("2d");
+        dangerChart = new Chart(dangerCtx, {
+          type: "bar",
+          data: {
+            labels: ["Dec 8"],
+            datasets: [
+              {
+                label: "Danger Events",
+                data: [2],
+                backgroundColor: "#f97316",
+                borderRadius: 4,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true },
+            },
+          },
+        });
+      }
+
+      // Socket.IO - Real-time updates
+      socket.on("sensor-update", (data) => {
+        updateDashboard(data);
+      });
+
+      function updateDashboard(data) {
+        // Update status cards
+        document.getElementById("distance").textContent = `${data.distance} cm`;
+        document.getElementById("lightLevel").textContent = `${data.light} lux`;
+
+        // Update charts
+        const now = new Date().toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        timeLabels.push(now);
+        distanceData.push(data.distance);
+        lightData.push(data.light);
+
+        // Keep only last 50 data points
+        if (timeLabels.length > 50) {
+          timeLabels.shift();
+          distanceData.shift();
+          lightData.shift();
+        }
+
+        distanceChart.update();
+        lightChart.update();
+
+        // Update danger status
+        const dangerThreshold = parseInt(
+          document.getElementById("dangerDistance").value
+        );
+        if (data.distance <= dangerThreshold) {
+          document.querySelector(".badge-danger").style.display =
+            "inline-block";
+        }
+      }
+
+      function loadHistoricalData() {
+        // Generate sample historical data
+        for (let i = 0; i < 24; i++) {
+          const hour = i.toString().padStart(2, "0") + ":00";
+          timeLabels.push(hour);
+          distanceData.push(Math.floor(Math.random() * 100) + 20);
+          lightData.push(Math.floor(Math.random() * 800) + 200);
+        }
+        distanceChart.update();
+        lightChart.update();
+      }
+
+      function setTimeRange(range) {
+        document
+          .querySelectorAll(".btn-time")
+          .forEach((btn) => btn.classList.remove("active"));
+        event.target.classList.add("active");
+        // TODO: Load data for selected time range
+      }
+
+      function activateSystem() {
+        socket.emit("control-cmd", { device: "SYSTEM", status: "ACTIVATE" });
+        alert("System activated!");
+      }
+
+      function updateLightThreshold(value) {
+        document.getElementById("lightThresholdValue").textContent = value;
+      }
+
+      function saveThreshold() {
+        const threshold = document.getElementById("lightThreshold").value;
+        socket.emit("settings", { lightThreshold: threshold });
+        alert("Light threshold saved!");
+      }
+
+      function saveSettings() {
+        const warningDist = document.getElementById("warningDistance").value;
+        const dangerDist = document.getElementById("dangerDistance").value;
+        socket.emit("settings", {
+          warningDistance: warningDist,
+          dangerDistance: dangerDist,
+        });
+        alert("Settings saved!");
+      }
+
+      function logout() {
+        window.location.href = "login.html";
+      }
     </script>
-</body>
+  </body>
 </html>
