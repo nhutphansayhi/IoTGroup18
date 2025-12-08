@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "lldb",
+      "request": "launch",
+      "args": [],
+      "cwd": "/Users/nhutphan/Documents/IoT/DoAn_VatLy_Nhom/IoTGroup18/controller",
+      "program": "/Users/nhutphan/Documents/IoT/DoAn_VatLy_Nhom/IoTGroup18/controller/build/Debug/outDebug"
+    }
+  ]
+}

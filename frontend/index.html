@@ -22,8 +22,8 @@
     <div class = "dashboard">
         <div class = "card">
             <h3>Khoảng cách</h3>
-            <div id = "dist" class = "value">--<div>
-            <span>cm<span>
+            <div id = "dist" class = "value">--</div>
+            <span>cm</span>
         </div>
         <div class="card">
             <h3>Ánh sáng</h3>
@@ -73,9 +73,25 @@
             }
         })
         // 2. Gửi lệnh
-        <!-- function sendCommand(device, status) {
+        function sendCommand(device, status) {
+            console.log(`🖱️ Đã gửi lệnh: ${device} -> ${status}`); // Thêm dòng này!
             socket.emit('control-cmd', { device: device, status: status });
-        } -->
+        }
+
+        socket.on('button-update', (data) => {
+        const btnState = data.btn_status;
+        const btnDot = document.getElementById('btn-status');
+        const btnText = document.getElementById('btn-text');
+
+        if(btnState == 1) { // 1 = Đang Nhấn (LOW)
+            btnDot.innerHTML = '<span class="status-dot active"></span>';
+            btnText.innerText = "Đang Nhấn";
+        } else { // 0 = Nhả tay (HIGH)
+            btnDot.innerHTML = '<span class="status-dot"></span>';
+            btnText.innerText = "Nhả tay";
+        }
+        });
+        
     </script>
 </body>
 </html>
