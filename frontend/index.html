@@ -39,12 +39,24 @@
           <h3 class="card-title">Buzzer Status</h3>
           <div class="card-value" id="buzzerStatus">ON</div>
           <span class="badge badge-active">ACTIVE</span>
+          <button
+            class="btn-control btn-control-primary"
+            onclick="toggleBuzzer()"
+          >
+            Turn Off
+          </button>
         </div>
 
         <div class="status-card">
           <h3 class="card-title">Garage Lamp Status</h3>
           <div class="card-value" id="lampStatus">OFF</div>
           <span class="badge badge-off">OFF</span>
+          <button
+            class="btn-control btn-control-secondary"
+            onclick="toggleLamp()"
+          >
+            Turn On
+          </button>
         </div>
       </div>
 
@@ -173,11 +185,14 @@
       let distanceData = [];
       let lightData = [];
       let timeLabels = [];
+      let buzzerState = true; // true = ON, false = OFF
+      let lampState = false; // true = ON, false = OFF
 
       // Initialize Charts
       window.onload = function () {
         initCharts();
         loadHistoricalData();
+        loadUsername();
       };
 
       function initCharts() {
@@ -274,6 +289,15 @@
         // Update status cards
         document.getElementById("distance").textContent = `${data.distance} cm`;
         document.getElementById("lightLevel").textContent = `${data.light} lux`;
+        document.getElementById("buzzerStatus").textContent = data.buzzer
+          ? "ON"
+          : "OFF";
+        document.getElementById("lampStatus").textContent = data.lamp
+          ? "ON"
+          : "OFF";
+
+        // Update button text
+        updateControlButtons();
 
         // Update charts
         const now = new Date().toLocaleTimeString("en-US", {
@@ -316,6 +340,11 @@
         lightChart.update();
       }
 
+      function loadUsername() {
+        const username = localStorage.getItem("username") || "11111";
+        document.getElementById("username").textContent = username;
+      }
+
       function setTimeRange(range) {
         document
           .querySelectorAll(".btn-time")
@@ -327,6 +356,49 @@
       function activateSystem() {
         socket.emit("control-cmd", { device: "SYSTEM", status: "ACTIVATE" });
         alert("System activated!");
+      }
+
+      function toggleBuzzer() {
+        buzzerState = !buzzerState;
+        socket.emit("control-cmd", {
+          device: "BUZZER",
+          status: buzzerState ? "ON" : "OFF",
+        });
+        updateControlButtons();
+      }
+
+      function toggleLamp() {
+        lampState = !lampState;
+        socket.emit("control-cmd", {
+          device: "LAMP",
+          status: lampState ? "ON" : "OFF",
+        });
+        updateControlButtons();
+      }
+
+      function updateControlButtons() {
+        const buzzerBtn = document.querySelectorAll(".btn-control")[0];
+        const lampBtn = document.querySelectorAll(".btn-control")[1];
+
+        if (buzzerState) {
+          buzzerBtn.textContent = "Turn Off";
+          buzzerBtn.classList.remove("btn-control-secondary");
+          buzzerBtn.classList.add("btn-control-primary");
+        } else {
+          buzzerBtn.textContent = "Turn On";
+          buzzerBtn.classList.remove("btn-control-primary");
+          buzzerBtn.classList.add("btn-control-secondary");
+        }
+
+        if (lampState) {
+          lampBtn.textContent = "Turn Off";
+          lampBtn.classList.remove("btn-control-secondary");
+          lampBtn.classList.add("btn-control-primary");
+        } else {
+          lampBtn.textContent = "Turn On";
+          lampBtn.classList.remove("btn-control-primary");
+          lampBtn.classList.add("btn-control-secondary");
+        }
       }
 
       function updateLightThreshold(value) {
@@ -350,6 +422,7 @@
       }
 
       function logout() {
+        localStorage.removeItem("username");
         window.location.href = "login.html";
       }
     </script>
