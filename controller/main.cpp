@@ -16,8 +16,7 @@ void reconnect();
 void callback(char* topic, byte* message, unsigned int length);
 
 
-// --- 1. CẤU HÌNH WIFI & MQTT ---
-// ⚠️ CHẮC CHẮN ĐÂY LÀ MẠNG 2.4GHz CỦA BẠN
+// --- 1. CẤU HÌNH WIFI & MQTT ---  
 const char* ssid = "Highlands Coffee"; 
 const char* password = "";
 const char* mqtt_server = "broker.hivemq.com";
