@@ -64,11 +64,11 @@ void callback(char* topic, byte* message, unsigned int length){
             if (strcmp(status, "ON") == 0) digitalWrite(RELAY_PIN, HIGH);
             else digitalWrite(RELAY_PIN, LOW);
         }
-        else if (strcmp(device,"BUZZER" == 0)){
+        else if (strcmp(device,"BUZZER") == 0){
             if (strcmp(status,"ON") == 0){
                 digitalWrite(BUZZER_PIN, HIGH);
             }
-            else (){
+            else {
                 digitalWrite(BUZZER_PIN, LOW);
             }
         }
@@ -82,7 +82,7 @@ void setup_wifi(){
     Serial.print("Dang ket noi WiFi: ");
     Serial.println(ssid);
 
-    Wifi.begin(ssid, password);
+    WiFi.begin(ssid, password);
 
     while (WiFi.status() != WL_CONNECTED){
         delay(500);
@@ -92,10 +92,10 @@ void setup_wifi(){
 }
 
 void reconnect(){
-    while(!client.connectedd()){
+    while(!client.connected()){
         Serial.print("Dang ket noi MQTT...");
         String clientId = "ESP32Client-";
-        cliendID += String(random(0xffff), HEX);
+        clientId += String(random(0xffff), HEX);
     
 
         if (client.connect(clientId.c_str())){
