@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Ký - Smart Parking Assist</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .register-container {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .register-header {
+            margin-bottom: 24px;
+        }
+
+        .register-header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 8px;
+        }
+
+        .register-header p {
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #b45309;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background-color: #f9fafb;
+            transition: all 0.2s ease;
+            color: #374151;
+        }
+
+        .form-group input::placeholder {
+            color: #9ca3af;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #1e40af;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+        }
+
+        .btn-register {
+            width: 100%;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #ffffff;
+            background-color: #1e3a5f;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 8px;
+        }
+
+        .btn-register:hover {
+            background-color: #15294a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3);
+        }
+
+        .btn-register:active {
+            transform: translateY(0);
+        }
+
+        .register-footer {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .register-footer p {
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .register-footer a {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .register-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Password visibility toggle */
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper input {
+            padding-right: 45px;
+        }
+
+        /* Error message styling */
+        .error-message {
+            color: #dc2626;
+            font-size: 0.8rem;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .form-group.error input {
+            border-color: #dc2626;
+        }
+
+        .form-group.error .error-message {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-header">
+            <h1>Create Account</h1>
+            <p>Sign up for Smart Parking Assist</p>
+        </div>
+
+        <form id="registerForm" action="#" method="POST">
+            <div class="form-group">
+                <label for="fullname">Full Name</label>
+                <input 
+                    type="text" 
+                    id="fullname" 
+                    name="fullname" 
+                    placeholder="John Doe" 
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    placeholder="you@example.com" 
+                    required
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-wrapper">
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        placeholder="••••••••" 
+                        required
+                        minlength="6"
+                    >
+                </div>
+            </div>
+
+            <div class="form-group" id="confirmPasswordGroup">
+                <label for="confirmPassword">Confirm Password</label>
+                <div class="password-wrapper">
+                    <input 
+                        type="password" 
+                        id="confirmPassword" 
+                        name="confirmPassword" 
+                        placeholder="••••••••" 
+                        required
+                    >
+                </div>
+                <span class="error-message" id="passwordError">Passwords do not match</span>
+            </div>
+
+            <button type="submit" class="btn-register">Create Account</button>
+        </form>
+
+        <div class="register-footer">
+            <p>Already have an account? <a href="login.html">Sign in</a></p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('registerForm');
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+
+        // Validate password match
+        function validatePasswords() {
+            if (password.value !== confirmPassword.value) {
+                confirmPasswordGroup.classList.add('error');
+                return false;
+            } else {
+                confirmPasswordGroup.classList.remove('error');
+                return true;
+            }
+        }
+
+        confirmPassword.addEventListener('input', validatePasswords);
+        password.addEventListener('input', function() {
+            if (confirmPassword.value) {
+                validatePasswords();
+            }
+        });
+
+        form.addEventListener('submit', async function(e) { 
+            e.preventDefault();
+            
+            const submitBtn = document.querySelector('.btn-register');
+            submitBtn.disabled = true; // Vô hiệu hóa nút để tránh gửi nhiều lần
+
+            if (!validatePasswords()) {
+                submitBtn.disabled = false;
+                return;
+            }
+
+            const fullname = document.getElementById('fullname').value;
+            const email = document.getElementById('email').value;
+            const passwordValue = password.value;
+
+            // BẮT ĐẦU GỬI YÊU CẦU ĐĂNG KÝ ĐẾN BACKEND
+            try {
+                const response = await fetch('/api/register', { // <<< GỬI POST ĐẾN API
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        fullname: fullname,
+                        email: email,
+                        password: passwordValue
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) { // Mã trạng thái 200-299 (Thành công)
+                    alert('Đăng ký thành công! Vui lòng đăng nhập.');
+                    // Chuyển hướng sang trang đăng nhập (giả sử có file login.html)
+                    window.location.href = 'login.html'; 
+                } else {
+                    // Xử lý lỗi từ Server
+                    alert(`Đăng ký thất bại: ${result.message}`);
+                }
+
+            } catch (error) {
+                alert('Lỗi kết nối Server.');
+                console.error('Fetch error:', error);
+            } finally {
+                submitBtn.disabled = false; // Bật lại nút
+            }
+        });
+    </script>
+</body>
+</html>

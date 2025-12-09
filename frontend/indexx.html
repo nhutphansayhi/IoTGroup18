@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống IoT - Smart Car</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        /* CSS CŨ CỦA BẠN (GIỮ NGUYÊN) */
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; text-align: center; margin: 0; }
+        
+        /* <<< THÊM MỚI: CSS CHO LOGIN SCREEN */
+        #login-section {
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
+        }
+        .login-box {
+            background: white; padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 320px;
+        }
+        .login-box h2 { margin-bottom: 20px; color: #333; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group input {
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px;
+        }
+        .auth-btn {
+            width: 100%; padding: 12px; background-color: #007bff; color: white;
+            border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;
+            margin-top: 10px; transition: 0.3s;
+        }
+        .auth-btn:hover { background-color: #0056b3; }
+        .toggle-text { margin-top: 15px; font-size: 14px; color: #555; cursor: pointer; text-decoration: underline; }
+        #error-msg { color: red; font-size: 14px; margin-top: 10px; display: none;}
+        /* KẾT THÚC THÊM CSS CHO LOGIN */
+
+        /* CSS CŨ CỦA BẠN */
+        #dashboard-section { display: none; padding: 20px; } /* <<< THAY ĐỔI: Thẻ div lớn này chứa Dashboard, mặc định ẩn */
+        .header-bar { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; background: white; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); } /* <<< THÊM MỚI: CSS cho thanh header */
+        .logout-btn { background-color: #dc3545; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold;}
+        
+        .dashboard { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; margin-top: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; width: 200px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .value { font-size: 2.5rem; font-weight: bold; color: #007bff; margin: 10px 0; }
+        .btn { padding: 10px 20px; margin: 5px; border: none; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; }
+        .btn-on { background-color: #28a745; }
+        .btn-off { background-color: #dc3545; }
+        .status-dot { height: 15px; width: 15px; background-color: #bbb; border-radius: 50%; display: inline-block; }
+        .active { background-color: #28a745; }
+    </style>
+</head>
+<body>
+    <div id="dashboard-section"> 
+        <div class="header-bar">
+            <h2>🎛️ Bảng Điều Khiển IoT</h2>
+            <div>
+                <span id="user-email" style="margin-right: 10px; color: #555;"></span>
+                <button class="logout-btn" onclick="userLogout()">Đăng xuất</button>
+            </div>
+        </div>
+        <div class="dashboard">
+            <div class="card">
+                <h3>Khoảng cách</h3>
+                <div id="dist" class="value">--</div>
+                <span>cm</span>
+            </div>
+            <div class="card">
+                <h3>Ánh sáng</h3>
+                <div id="lux" class="value">--</div>
+                <span>ADC (0-4095)</span>
+            </div>
+            <div class="card">
+                <h3>Nút nhấn</h3>
+                <div id="btn-status" class="value">
+                    <span class="status-dot"></span>
+                </div>
+                <span id="btn-text">Chưa nhấn</span>
+            </div>
+        </div>
+    
+        <hr style="margin: 40px auto; width: 80%;">
+        
+        <div id="control-panel" class="dashboard">
+            <div class="card">
+                <h3>💡 Relay</h3>
+                <button class="btn btn-on" onclick="sendCommand('RELAY', 'ON')">BẬT</button>
+                <button class="btn btn-off" onclick="sendCommand('RELAY', 'OFF')">TẮT</button>
+            </div>
+            <div class="card">
+                <h3>🔊 Buzzer</h3>
+                <button class="btn btn-on" onclick="sendCommand('BUZZER', 'ON')">KÊU</button>
+                <button class="btn btn-off" onclick="sendCommand('BUZZER', 'OFF')">TẮT</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="login-section">
+        <div class="login-box">
+            <h2 id="form-title">Đăng Nhập</h2>
+            <div class="input-group">
+                <input type="email" id="email" placeholder="Email của bạn">
+            </div>
+            <div class="input-group">
+                <input type="password" id="password" placeholder="Mật khẩu">
+            </div>
+            <p id="error-msg"></p>
+            
+            <button class="auth-btn" id="submit-btn" onclick="handleAuth()">ĐĂNG NHẬP</button>
+            
+            <p class="toggle-text" onclick="toggleMode()">Chưa có tài khoản? Đăng ký ngay</p>
+        </div>
+    </div>
+
+    <h1>🎛️ Bảng Điều Khiển IoT</h1>
+    
+
+    <script>
+        const socket = io();
+
+        // [Code cũ: Kiểm tra kết nối]
+        socket.on('connect', () => {
+            console.log("✅ Web đã kết nối với Server!");
+        });
+
+        // --- ĐOẠN CẦN THÊM: NHẬN TRẠNG THÁI NÚT TỪ FIREBASE ---
+        socket.on('button-update', (data) => {
+            console.log("📥 Web nhận data nút:", data);
+            
+            // data nhận được có dạng: { btn_status: 1 } hoặc { btn_status: 0 }
+            const btnState = data.btn_status;
+            
+            const btnDot = document.getElementById('btn-status');
+            const btnText = document.getElementById('btn-text');
+
+            // Cập nhật giao diện: 1 là Đang Nhấn, 0 là Nhả
+            if(btnState == 1) {
+                // Đổi màu chấm tròn thành xanh lá
+                if(btnDot) btnDot.innerHTML = '<span class="status-dot active" style="background-color: #28a745;"></span>';
+                if(btnText) {
+                    btnText.innerText = "Đang Nhấn";
+                    btnText.style.color = "#28a745"; // Chữ màu xanh
+                    btnText.style.fontWeight = "bold";
+                }
+            } else {
+                // Đổi màu chấm tròn về xám
+                if(btnDot) btnDot.innerHTML = '<span class="status-dot" style="background-color: #bbb;"></span>';
+                if(btnText) {
+                    btnText.innerText = "Nhả tay";
+                    btnText.style.color = "#333"; // Chữ màu đen
+                }
+            }
+        });
+        // -------------------------------------------------------
+
+        // [Code cũ: Gửi lệnh điều khiển]
+        function sendCommand(device, status) {
+            console.log(`🖱️ Đang gửi lệnh: ${device} -> ${status}`);
+            socket.emit('control-cmd', { device: device, status: status });
+        }
+    </script>
+</body>
+
+<script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        
+        // ⚠️ DÁN CONFIG FIREBASE CỦA BẠN VÀO ĐÂY (Bước 2 trước)
+        const firebaseConfig = {
+            apiKey: "DÁN_API_KEY_CUA_BAN_VAO_DAY", // <-- THAY THẾ CHÍNH XÁC
+            authDomain: "smartsupportcardevice.firebaseapp.com",
+            projectId: "smartsupportcardevice",
+            // Các thông tin khác...
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        let isLoginMode = true; 
+
+        // Hàm xử lý chính: Đăng nhập/Đăng ký
+        window.handleAuth = () => {
+            const email = document.getElementById('email').value;
+            const pass = document.getElementById('password').value;
+            const errorLabel = document.getElementById('error-msg');
+
+            if(pass.length < 6) {
+                errorLabel.style.display = 'block';
+                errorLabel.innerText = "Mật khẩu phải từ 6 ký tự trở lên!";
+                return;
+            }
+
+            if (isLoginMode) {
+                // ĐĂNG NHẬP
+                signInWithEmailAndPassword(auth, email, pass)
+                    .then((userCredential) => { 
+                        errorLabel.style.display = 'none';
+                    })
+                    .catch((error) => {
+                        errorLabel.style.display = 'block';
+                        errorLabel.innerText = "Lỗi: Sai email hoặc mật khẩu!";
+                    });
+            } else {
+                // ĐĂNG KÝ
+                createUserWithEmailAndPassword(auth, email, pass)
+                    .then((userCredential) => {
+                        alert("Đăng ký thành công! Đang đăng nhập...");
+                    })
+                    .catch((error) => {
+                        errorLabel.style.display = 'block';
+                        errorLabel.innerText = "Lỗi: " + error.message;
+                    });
+            }
+        }
+
+        // Chuyển đổi qua lại giữa Form Đăng Nhập / Đăng Ký
+        window.toggleMode = () => {
+            isLoginMode = !isLoginMode;
+            const title = document.getElementById('form-title');
+            const btn = document.getElementById('submit-btn');
+            const toggle = document.querySelector('.toggle-text');
+            const errorLabel = document.getElementById('error-msg');
+            
+            errorLabel.style.display = 'none';
+
+            if (isLoginMode) {
+                title.innerText = "Đăng Nhập";
+                btn.innerText = "ĐĂNG NHẬP";
+                toggle.innerText = "Chưa có tài khoản? Đăng ký ngay";
+            } else {
+                title.innerText = "Đăng Ký Tài Khoản";
+                btn.innerText = "ĐĂNG KÝ";
+                toggle.innerText = "Đã có tài khoản? Quay lại đăng nhập";
+            }
+        }
+
+        // Hàm Đăng xuất
+        window.userLogout = () => {
+            signOut(auth).then(() => {
+                console.log("Đã đăng xuất");
+            });
+        }
+
+        // Theo dõi trạng thái người dùng (Chuyển đổi màn hình)
+        onAuthStateChanged(auth, (user) => {
+            const loginSection = document.getElementById('login-section');
+            const dashboardSection = document.getElementById('dashboard-section');
+            const userEmailSpan = document.getElementById('user-email');
+
+            if (user) {
+                loginSection.style.display = 'none';
+                dashboardSection.style.display = 'block';
+                userEmailSpan.innerText = `Chào: ${user.email}`;
+
+            } else {
+                loginSection.style.display = 'flex';
+                dashboardSection.style.display = 'none';
+            }
+        });
+</script>
+</html>
