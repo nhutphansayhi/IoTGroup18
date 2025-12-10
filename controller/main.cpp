@@ -4,9 +4,15 @@
 #include <ArduinoJson.h>
 #include <Firebase_ESP_Client.h>
 
-
 #define FIREBASE_HOST "smartsupportcardevice-default-rtdb.firebaseio.com"
 #define FIREBASE_AUTH "GiZP3gMeY8tM7n72Qis06Fe6aaAwTaPEEQro7Ga2"
+const char* FIREBASE_BUTTON_PATH = "/nhom18/button_status"; // 👈 Cần khai báo này
+
+
+FirebaseConfig config;
+FirebaseAuth auth;
+FirebaseData fbdo;
+
 
 // --- KHAI BÁO HÀM (PROTOTYPES) ---
 void setup();
@@ -16,13 +22,13 @@ void reconnect();
 void callback(char* topic, byte* message, unsigned int length);
 
 
-// --- 1. CẤU HÌNH WIFI & MQTT ---  
-const char* ssid = "Highlands Coffee"; 
-const char* password = "";
+// --- 1. CẤU HÌNH WIFI & MQTT ---
+
+const char* ssid = "Thien Nhan^.^"; 
+const char* password = "22092005.";
 const char* mqtt_server = "broker.hivemq.com";
 const char* mqtt_topic = "nhom18/control";
 const char* mqtt_data_topic = "nhom18/data/status";
-
 
 // Khai báo biến Non-Blocking và Debounce
 int lastButtonState = HIGH;      // TRẠNG THÁI CHUẨN: HIGH (Nhả nút) do dùng INPUT_PULLUP
@@ -51,7 +57,10 @@ void setup_wifi(){
     Serial.print("Dang khoi tao WiFi: ");
     Serial.println(ssid);
 
-    Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+    config.database_url = FIREBASE_HOST; 
+    config.signer.tokens.legacy_token = FIREBASE_AUTH;
+
+    Firebase.begin(&config, &auth); 
     Firebase.reconnectWiFi(true);
 
     WiFi.begin(ssid, password);
@@ -166,6 +175,7 @@ void loop() {
 
     // --- PHẦN 3: LOGIC ĐỌC NÚT VÀ GỬI DỮ LIỆU ---
     // Logic này không bị delay() trong reconnect chặn lại nữa
+    // TRONG HÀM loop():
     if (millis() - lastSendTime > interval) {
         int currentButtonState = digitalRead(BUTTON_PIN);
         
@@ -175,22 +185,24 @@ void loop() {
             if (WiFi.status() == WL_CONNECTED && Firebase.ready()) { 
                 lastButtonState = currentButtonState;
                 
-                // 1. Tạo JSON object
-                StaticJsonDocument<200> doc;
-                doc["btn_status"] = (currentButtonState == LOW) ? 1 : 0; 
+                // ✅ SỬA LỖI: Sử dụng FirebaseJson thay vì ArduinoJson
+                FirebaseJson json;
+                // LOW (Nhấn) = 1, HIGH (Nhả) = 0
+                json.set("btn_status", (currentButtonState == LOW) ? 1 : 0); 
 
-                // 2. Gửi dữ liệu lên FIREBASE
-                if (Firebase.setJSON(fbdo, FIREBASE_BUTTON_PATH, doc)) {
+                // Gửi dữ liệu lên FIREBASE
+                if (Firebase.RTDB.setJSON(&fbdo, FIREBASE_BUTTON_PATH, &json)) {
                     Serial.print("Da gui trang thai nut len Firebase: ");
-                    serializeJson(doc, Serial);
+                    // In ra Serial để debug
+                    json.toString(Serial, true);
                     Serial.println();
                 } else {
                     Serial.print("Loi gui Firebase: ");
                     Serial.println(fbdo.errorReason());
                 }
             } else {
-                 // Nếu Firebase chưa sẵn sàng, thử gửi lại sau
-                 Serial.println("Chua gui duoc, Firebase hoac WiFi chua san sang.");
+                // Nếu Firebase chưa sẵn sàng, thử gửi lại sau
+                Serial.println("Chua gui duoc, Firebase hoac WiFi chua san sang.");
             }
         }
         lastSendTime = millis();

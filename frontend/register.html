@@ -244,10 +244,14 @@
             }
         });
 
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', async function(e) { 
             e.preventDefault();
             
+            const submitBtn = document.querySelector('.btn-register');
+            submitBtn.disabled = true; // Vô hiệu hóa nút để tránh gửi nhiều lần
+
             if (!validatePasswords()) {
+                submitBtn.disabled = false;
                 return;
             }
 
@@ -255,14 +259,37 @@
             const email = document.getElementById('email').value;
             const passwordValue = password.value;
 
-            // Xử lý đăng ký ở đây
-            console.log('Register attempt:', { fullname, email, password: passwordValue });
-            
-            // TODO: Gửi request đến server để đăng ký
-            // Sau khi đăng ký thành công, chuyển hướng sang trang đăng nhập
-            // window.location.href = 'login.html';
-            
-            alert('Đăng ký thành công! (Demo)');
+            // BẮT ĐẦU GỬI YÊU CẦU ĐĂNG KÝ ĐẾN BACKEND
+            try {
+                const response = await fetch('/api/register', { // <<< GỬI POST ĐẾN API
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        fullname: fullname,
+                        email: email,
+                        password: passwordValue
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) { // Mã trạng thái 200-299 (Thành công)
+                    alert('Đăng ký thành công! Vui lòng đăng nhập.');
+                    // Chuyển hướng sang trang đăng nhập (giả sử có file login.html)
+                    window.location.href = 'login.html'; 
+                } else {
+                    // Xử lý lỗi từ Server
+                    alert(`Đăng ký thất bại: ${result.message}`);
+                }
+
+            } catch (error) {
+                alert('Lỗi kết nối Server.');
+                console.error('Fetch error:', error);
+            } finally {
+                submitBtn.disabled = false; // Bật lại nút
+            }
         });
     </script>
 </body>

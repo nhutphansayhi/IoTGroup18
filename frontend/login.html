@@ -170,7 +170,9 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn-login">Sign In</button>
+            
+            <!-- <button type="submit" class="btn-login">Sign In</button> -->
+            <p id="loginError" style="color: red; font-size: 0.9rem; margin-top: 10px;"></p> <button type="submit" class="btn-login">Sign In</button>
         </form>
 
         <div class="login-footer">
@@ -178,21 +180,61 @@
         </div>
     </div>
 
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBJjLatTYnevEv9Irljn36pQm7SMz8C_a8",
+            authDomain: "smartsupportcardevice.firebaseapp.com",
+            databaseURL: "https://smartsupportcardevice-default-rtdb.firebaseio.com",
+            projectId: "smartsupportcardevice",
+            storageBucket: "smartsupportcardevice.firebasestorage.app",
+            messagingSenderId: "349000079236",
+            appId: "1:349000079236:web:a0d4e3ea628c90df9c6fd1",
+            measurementId: "G-3X6XQCBX60"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        
+        // <<< ĐÃ XÓA LOGIC onAuthStateChanged và userLogout khỏi đây >>>
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
+            const submitBtn = document.querySelector('.btn-login');
+            const errorElement = document.getElementById('loginError');
+            
+            errorElement.textContent = '';
+            submitBtn.disabled = true;
 
-            // Xử lý đăng nhập ở đây
-            console.log('Login attempt:', { email, password });
-            
-            // TODO: Gửi request đến server để xác thực
-            // Sau khi đăng nhập thành công, chuyển hướng sang trang chính
-            // window.location.href = 'index.html';
-            
-            alert('Đăng nhập thành công! (Demo)');
+            try {
+                // SỬ DỤNG HÀM ĐĂNG NHẬP CỦA FIREBASE AUTH
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                
+                // Đăng nhập thành công
+                console.log('Login successful:', userCredential.user.uid);
+                alert('Đăng nhập thành công! Đang chuyển hướng...');
+                
+                // Chuyển hướng sang trang Dashboard chính
+                window.location.href = 'index.html'; 
+                
+            } catch (error) {
+                console.error('Login failed:', error.code, error.message);
+                
+                // SỬA ĐỔI HIỂN THỊ LỖI CHÍNH XÁC HƠN
+                let errorMessage = 'Đăng nhập thất bại: Sai email hoặc mật khẩu.';
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errorMessage = 'Email hoặc mật khẩu không đúng.';
+                }
+                errorElement.textContent = errorMessage;
+
+            } finally {
+                submitBtn.disabled = false;
+            }
         });
     </script>
 </body>

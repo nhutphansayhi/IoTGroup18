@@ -1,2 +1,17 @@
 node_modules/
 dist/
+
+# Firebase Service Account Keys (DO NOT COMMIT!)
+backend/serviceAccountKey.json
+serviceAccountKey.json
+
+
+# Environment Variables
+.env
+.env.local
+.env.*.local
+
+# OS Files
+.DS_Store
+Thumbs.db
+*.swp
