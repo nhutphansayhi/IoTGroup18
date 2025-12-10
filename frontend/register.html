@@ -152,9 +152,35 @@
         .form-group.error .error-message {
             display: block;
         }
+
+        /* Toast Notification */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        .toast {
+            padding: 16px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s;
+            min-width: 280px;
+        }
+        .toast-success { background: linear-gradient(135deg, #10b981, #059669); }
+        .toast-error { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .toast-info { background: linear-gradient(135deg, #3b82f6, #1e40af); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateX(100%); } }
     </style>
 </head>
 <body>
+    <div class="toast-container" id="toastContainer"></div>
     <div class="register-container">
         <div class="register-header">
             <h1>Create Account</h1>
@@ -276,21 +302,30 @@
                 const result = await response.json();
 
                 if (response.ok) { // Mã trạng thái 200-299 (Thành công)
-                    alert('Đăng ký thành công! Vui lòng đăng nhập.');
-                    // Chuyển hướng sang trang đăng nhập (giả sử có file login.html)
-                    window.location.href = 'login.html'; 
+                    showToast('success', '✓ Đăng ký thành công!');
+                    // Chuyển hướng sang trang đăng nhập
+                    setTimeout(() => { window.location.href = 'login.html'; }, 1500); 
                 } else {
                     // Xử lý lỗi từ Server
-                    alert(`Đăng ký thất bại: ${result.message}`);
+                    showToast('error', `✗ Đăng ký thất bại: ${result.message}`);
                 }
 
             } catch (error) {
-                alert('Lỗi kết nối Server.');
+                showToast('error', '✗ Lỗi kết nối Server');
                 console.error('Fetch error:', error);
             } finally {
                 submitBtn.disabled = false; // Bật lại nút
             }
         });
+
+        function showToast(type, message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
     </script>
 </body>
 </html>

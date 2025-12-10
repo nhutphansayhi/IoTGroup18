@@ -136,9 +136,35 @@
         .password-wrapper input {
             padding-right: 45px;
         }
+
+        /* Toast Notification */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        .toast {
+            padding: 16px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s;
+            min-width: 280px;
+        }
+        .toast-success { background: linear-gradient(135deg, #10b981, #059669); }
+        .toast-error { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .toast-info { background: linear-gradient(135deg, #3b82f6, #1e40af); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { to { opacity: 0; transform: translateX(100%); } }
     </style>
 </head>
 <body>
+    <div class="toast-container" id="toastContainer"></div>
     <div class="login-container">
         <div class="login-header">
             <h1>Smart Parking Assist</h1>
@@ -217,10 +243,10 @@
                 
                 // Đăng nhập thành công
                 console.log('Login successful:', userCredential.user.uid);
-                alert('Đăng nhập thành công! Đang chuyển hướng...');
+                showToast('success', '✓ Đăng nhập thành công!');
                 
                 // Chuyển hướng sang trang Dashboard chính
-                window.location.href = 'index.html'; 
+                setTimeout(() => { window.location.href = 'index.html'; }, 1500); 
                 
             } catch (error) {
                 console.error('Login failed:', error.code, error.message);
@@ -230,12 +256,22 @@
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                     errorMessage = 'Email hoặc mật khẩu không đúng.';
                 }
+                showToast('error', '✗ ' + errorMessage);
                 errorElement.textContent = errorMessage;
 
             } finally {
                 submitBtn.disabled = false;
             }
         });
+
+        function showToast(type, message) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
     </script>
 </body>
 </html>

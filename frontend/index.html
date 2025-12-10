@@ -9,6 +9,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <!-- Header -->
     <header class="header">
       <div class="header-content">
@@ -233,10 +236,11 @@
             set(ref(database, 'nhom18/settings/lightThreshold'), parseInt(threshold))
                 .then(() => {
                     console.log("Light threshold saved to Firebase:", threshold);
-                    alert("Light threshold saved!");
+                    showToast('success', '✓ Light threshold saved!');
                 })
                 .catch((error) => {
                     console.error("Error saving threshold:", error);
+                    showToast('error', '✗ Error saving threshold');
                 });
         }
 
@@ -251,10 +255,11 @@
             })
                 .then(() => {
                     console.log("Settings saved to Firebase");
-                    alert("Settings saved!");
+                    showToast('success', '✓ Settings saved successfully!');
                 })
                 .catch((error) => {
                     console.error("Error saving settings:", error);
+                    showToast('error', '✗ Error saving settings');
                 });
         }
     </script>
@@ -266,6 +271,31 @@
       let timeLabels = [];
       let buzzerState = true; // true = ON, false = OFF
       let lampState = false; // true = ON, false = OFF
+
+      // Toast Notification Function
+      function showToast(type, message) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+        
+        const icons = {
+          success: '✓',
+          error: '✗',
+          info: 'ℹ'
+        };
+        
+        toast.innerHTML = `
+          <span class="toast-icon">${icons[type] || '●'}</span>
+          <span>${message}</span>
+        `;
+        
+        container.appendChild(toast);
+        
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+          toast.remove();
+        }, 3000);
+      }
 
       // Initialize Charts
       window.onload = function () {
