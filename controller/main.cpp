@@ -123,6 +123,18 @@ void callback(char* topic, byte* message, unsigned int length){
     }
 }
 
+// Hàm đọc khoảng cách từ cảm biến Ultrasonic (cm)
+float getDistance() {
+    digitalWrite(TRIG_PIN, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+    long duration = pulseIn(ECHO_PIN, HIGH, 30000); // timeout 30ms
+    if (duration == 0) return -1; // Không nhận được phản hồi
+    return duration * 0.034 / 2;
+}
+
 // --- SETUP VÀ LOOP CHÍNH ---
 
 void setup() {
@@ -134,6 +146,8 @@ void setup() {
     pinMode(RELAY_PIN, OUTPUT);
     digitalWrite(RELAY_PIN, LOW);
     pinMode(BUTTON_PIN, INPUT_PULLUP); // ✅ Sửa lỗi: Dùng INPUT_PULLUP
+    pinMode(TRIG_PIN, OUTPUT);  // Ultrasonic trigger
+    pinMode(ECHO_PIN, INPUT);   // Ultrasonic echo
     
     
     
@@ -206,5 +220,25 @@ void loop() {
             }
         }
         lastSendTime = millis();
+    }
+
+    // --- GỬI DỮ LIỆU ULTRASONIC QUA MQTT LIÊN TỤC (100ms) ---
+    static unsigned long lastMqttSend = 0;
+    if (millis() - lastMqttSend > 100) {  // 100ms = 10 lần/giây
+        float distance = getDistance();
+        int light = analogRead(LDR_PIN);
+        
+        StaticJsonDocument<200> sensorDoc;
+        sensorDoc["distance"] = distance;
+        sensorDoc["light"] = light;
+        
+        String payload;
+        serializeJson(sensorDoc, payload);
+        client.publish("nhom18/control", payload.c_str());
+        
+        Serial.print("Sent MQTT: ");
+        Serial.println(payload);
+        
+        lastMqttSend = millis();
     }
 }
