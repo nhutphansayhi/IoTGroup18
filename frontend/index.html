@@ -182,17 +182,19 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         
         // ⚠️ DÁN CONFIG FIREBASE CỦA BẠN VÀO ĐÂY (PHẢI KHỚP VỚI LOGIN.HTML)
         const firebaseConfig = {
             apiKey: "AIzaSyBJjLatTYnevEv9Irljn36pQm7SMz8C_a8",
             authDomain: "smartsupportcardevice.firebaseapp.com",
             projectId: "smartsupportcardevice",
-            // Thêm các khóa còn lại nếu cần (databaseURL, storageBucket, etc.)
+            databaseURL: "https://smartsupportcardevice-default-rtdb.firebaseio.com"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const database = getDatabase(app);  // Firebase Realtime Database
         
         let currentUserEmail = "Guest"; 
 
@@ -223,6 +225,37 @@
             }).catch((error) => {
                 console.error("Lỗi đăng xuất:", error);
             });
+        }
+
+        // 3. HÀM GỬI SETTINGS LÊN FIREBASE
+        window.saveThreshold = function() {
+            const threshold = document.getElementById("lightThreshold").value;
+            set(ref(database, 'nhom18/settings/lightThreshold'), parseInt(threshold))
+                .then(() => {
+                    console.log("Light threshold saved to Firebase:", threshold);
+                    alert("Light threshold saved!");
+                })
+                .catch((error) => {
+                    console.error("Error saving threshold:", error);
+                });
+        }
+
+        window.saveSettings = function() {
+            const warningDist = parseInt(document.getElementById("warningDistance").value);
+            const dangerDist = parseInt(document.getElementById("dangerDistance").value);
+            
+            set(ref(database, 'nhom18/settings'), {
+                lightThreshold: parseInt(document.getElementById("lightThreshold").value),
+                warningDistance: warningDist,
+                dangerDistance: dangerDist
+            })
+                .then(() => {
+                    console.log("Settings saved to Firebase");
+                    alert("Settings saved!");
+                })
+                .catch((error) => {
+                    console.error("Error saving settings:", error);
+                });
         }
     </script>
     <script>
@@ -449,19 +482,13 @@
       }
 
       function saveThreshold() {
-        const threshold = document.getElementById("lightThreshold").value;
-        socket.emit("settings", { lightThreshold: threshold });
-        alert("Light threshold saved!");
+        // Đã chuyển sang Firebase module ở trên
+        window.saveThreshold();
       }
 
       function saveSettings() {
-        const warningDist = document.getElementById("warningDistance").value;
-        const dangerDist = document.getElementById("dangerDistance").value;
-        socket.emit("settings", {
-          warningDistance: warningDist,
-          dangerDistance: dangerDist,
-        });
-        alert("Settings saved!");
+        // Đã chuyển sang Firebase module ở trên
+        window.saveSettings();
       }
 
       

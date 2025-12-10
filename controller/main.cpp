@@ -3,6 +3,7 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <Firebase_ESP_Client.h>
+#include <LiquidCrystal_I2C.h>  // LCD I2C
 
 #define FIREBASE_HOST "smartsupportcardevice-default-rtdb.firebaseio.com"
 #define FIREBASE_AUTH "GiZP3gMeY8tM7n72Qis06Fe6aaAwTaPEEQro7Ga2"
@@ -47,6 +48,14 @@ const long RECONNECT_INTERVAL = 5000; // Thử lại kết nối sau 5s
 
 WiFiClient espClient;
 PubSubClient client(espClient);
+
+// LCD I2C (địa chỉ 0x27, 16 cột, 2 hàng)
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// Biến lưu settings từ Firebase
+int lightThreshold = 860;
+int warningDistance = 50;
+int dangerDistance = 20;
 
 
 
@@ -135,6 +144,51 @@ float getDistance() {
     return duration * 0.034 / 2;
 }
 
+// Hàm cập nhật LCD hiển thị settings
+void updateLCD() {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("L:");
+    lcd.print(lightThreshold);
+    lcd.print(" W:");
+    lcd.print(warningDistance);
+    
+    lcd.setCursor(0, 1);
+    lcd.print("D:");
+    lcd.print(dangerDistance);
+    lcd.print("cm");
+}
+
+// Hàm đọc settings từ Firebase
+void readSettingsFromFirebase() {
+    if (Firebase.RTDB.getJSON(&fbdo, "/nhom18/settings")) {
+        FirebaseJson &json = fbdo.jsonObject();
+        FirebaseJsonData result;
+        
+        if (json.get(result, "lightThreshold")) {
+            lightThreshold = result.intValue;
+        }
+        if (json.get(result, "warningDistance")) {
+            warningDistance = result.intValue;
+        }
+        if (json.get(result, "dangerDistance")) {
+            dangerDistance = result.intValue;
+        }
+        
+        Serial.print("Settings from Firebase - Light: ");
+        Serial.print(lightThreshold);
+        Serial.print(", Warning: ");
+        Serial.print(warningDistance);
+        Serial.print(", Danger: ");
+        Serial.println(dangerDistance);
+        
+        updateLCD();
+    } else {
+        Serial.print("Loi doc Firebase settings: ");
+        Serial.println(fbdo.errorReason());
+    }
+}
+
 // --- SETUP VÀ LOOP CHÍNH ---
 
 void setup() {
@@ -148,6 +202,14 @@ void setup() {
     pinMode(BUTTON_PIN, INPUT_PULLUP); // ✅ Sửa lỗi: Dùng INPUT_PULLUP
     pinMode(TRIG_PIN, OUTPUT);  // Ultrasonic trigger
     pinMode(ECHO_PIN, INPUT);   // Ultrasonic echo
+    
+    // Khởi tạo LCD
+    lcd.init();
+    lcd.backlight();
+    lcd.setCursor(0, 0);
+    lcd.print("Smart Parking");
+    lcd.setCursor(0, 1);
+    lcd.print("Starting...");
     
     
     
@@ -240,5 +302,14 @@ void loop() {
         Serial.println(payload);
         
         lastMqttSend = millis();
+    }
+
+    // --- ĐỌC SETTINGS TỪ FIREBASE MỖI 0.1 GIÂY ---
+    static unsigned long lastFirebaseRead = 0;
+    if (millis() - lastFirebaseRead > 100) {
+        if (Firebase.ready()) {
+            readSettingsFromFirebase();
+        }
+        lastFirebaseRead = millis();
     }
 }
