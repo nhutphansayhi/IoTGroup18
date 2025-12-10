@@ -3,8 +3,8 @@ dist/
 
 # Firebase Service Account Keys (DO NOT COMMIT!)
 backend/serviceAccountKey.json
-**/serviceAccountKey.json
-serviceAccount*.json
+serviceAccountKey.json
+
 
 # Environment Variables
 .env
