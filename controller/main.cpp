@@ -4,6 +4,9 @@
 #include <ArduinoJson.h>
 #include <Firebase_ESP_Client.h>
 #include <LiquidCrystal_I2C.h>  // LCD I2C
+// LDR
+#include <Wire.h>
+#include <BH1750.h>
 
 #define FIREBASE_HOST "smartsupportcardevice-default-rtdb.firebaseio.com"
 #define FIREBASE_AUTH "GiZP3gMeY8tM7n72Qis06Fe6aaAwTaPEEQro7Ga2"
@@ -40,8 +43,7 @@ const long RECONNECT_INTERVAL = 5000; // Thử lại kết nối sau 5s
 
 // --- 2. ĐỊNH NGHĨA CHÂN ---
 #define TRIG_PIN 5      
-#define ECHO_PIN 18     
-#define LDR_PIN 34      
+#define ECHO_PIN 18          
 #define BUTTON_PIN 15   
 #define RELAY_PIN 4     
 #define BUZZER_PIN 21
@@ -51,11 +53,14 @@ PubSubClient client(espClient);
 
 // LCD I2C (địa chỉ 0x27, 16 cột, 2 hàng)
 LiquidCrystal_I2C lcd(0x27, 16, 2);
+// Khai báo biến đại diện cảm biến BH1750
+BH1750 lightMeter
 
 // Biến lưu settings từ Firebase
 int lightThreshold = 860;
 int warningDistance = 50;
 int dangerDistance = 20;
+boolean lightStatus = false;
 
 
 
@@ -112,8 +117,16 @@ void callback(char* topic, byte* message, unsigned int length){
             
             // CHỈ XỬ LÝ LỆNH NẾU CHÚNG TỒN TẠI
             if (strcmp(device,"RELAY") == 0){
-                if (strcmp(status, "ON") == 0) digitalWrite(RELAY_PIN, HIGH);
-                else digitalWrite(RELAY_PIN, LOW);
+                if (strcmp(status, "ON") == 0) 
+                {
+                    digitalWrite(RELAY_PIN, HIGH);
+                    ligthStatus=true;
+                }
+                else 
+                {
+                    digitalWrite(RELAY_PIN, LOW);
+                    ligthStatus=false;
+                }
             }
             else if (strcmp(device,"BUZZER") == 0){
                 if (strcmp(status,"ON") == 0){
@@ -203,6 +216,10 @@ void setup() {
     pinMode(TRIG_PIN, OUTPUT);  // Ultrasonic trigger
     pinMode(ECHO_PIN, INPUT);   // Ultrasonic echo
     
+    // Khỏi tạo BH1750 GY-30, SDA, SCL của BH1750 gắn trùng với SDA,SCL của LCD
+    Wire.begin();
+    lightMeter.begin(BH1750::CONTINOUS_HIGH_RES_MODE);
+
     // Khởi tạo LCD
     lcd.init();
     lcd.backlight();
@@ -210,7 +227,6 @@ void setup() {
     lcd.print("Smart Parking");
     lcd.setCursor(0, 1);
     lcd.print("Starting...");
-    
     
     
     WiFi.disconnect(true); // Xóa thông tin WiFi cũ
@@ -284,11 +300,11 @@ void loop() {
         lastSendTime = millis();
     }
 
-    // --- GỬI DỮ LIỆU ULTRASONIC QUA MQTT LIÊN TỤC (100ms) ---
+    // --- GỬI DỮ LIỆU ULTRASONIC VÀ ÁNH SÁNG QUA MQTT LIÊN TỤC (100ms) ---
     static unsigned long lastMqttSend = 0;
     if (millis() - lastMqttSend > 100) {  // 100ms = 10 lần/giây
         float distance = getDistance();
-        int light = analogRead(LDR_PIN);
+        float light = ligthMeter.readLightLevel();
         
         StaticJsonDocument<200> sensorDoc;
         sensorDoc["distance"] = distance;
@@ -303,6 +319,23 @@ void loop() {
         
         lastMqttSend = millis();
     }
+
+    // --- BẬT ĐÈN NẾU TRỜI TỐI ---
+    static unsigned long lastLigthTime = 0;
+    if (millis() - lastLightTime > interval) {
+        if (lightStatus==false)
+        {
+            if (light<lightThreshold){
+            {
+                digitalWrite(RELAY_PIN, HIGH);
+            } else
+            {
+                digitalWrite(RELAY_PIN, LOW);
+            }
+        }
+        lastLightTime=millis();
+    }
+
 
     // --- ĐỌC SETTINGS TỪ FIREBASE MỖI 0.1 GIÂY ---
     static unsigned long lastFirebaseRead = 0;

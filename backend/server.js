@@ -21,6 +21,46 @@ admin.initializeApp({
 
 const db = admin.database();
 
+// Kết nối telegram
+const axios = require('axios');
+
+const TELEGRAM_TOKEN = "YOUR_BOT_TOKEN";
+const CHAT_ID = ["8116174154"
+];
+
+function sendTelegram(msg) {
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+
+    CHAT_IDS.forEach(chatId => {
+        axios.post(url, {
+            chat_id: chatId,
+            text: msg
+        })
+        .then(() => console.log("Đã gửi Telegram đến:", chatId))
+        .catch(err => console.error("Không gửi được đến", chatId, err));
+    });
+}
+
+
+//--- gửi telegram mỗi khi biến threshold cập nhật
+db.ref("nhom18/settings").on("value", (snapshot) => {
+    const s = snapshot.val();
+    if (!s) return;
+
+    const msg = `
+⚙️ *Cập nhật Setting mới:*
+• Light Threshold: ${s.lightThreshold}
+• Warning Distance: ${s.warningDistance}
+• Danger Distance: ${s.dangerDistance}
+    `;
+
+    sendTelegram(msg).then(() => {
+        console.log("Đã gửi thông báo Telegram");
+    }).catch(err => {
+        console.error("Lỗi gửi Telegram:", err);
+    });
+});
+
 // Kết nối MQTT Broker (Dùng chung broker với ESP32)
 const client = mqtt.connect('mqtt://broker.hivemq.com');
 
@@ -64,6 +104,7 @@ app.post('/api/register', async (req, res) => {
 // --- PHẦN MỚI: LẮNG NGHE FIREBASE (Luồng ESP32 -> Web) ---
 const buttonRef = db.ref("nhom18/button_status"); // Đường dẫn phải khớp với code ESP32
 
+
 buttonRef.on("value", (snapshot) => {
     const data = snapshot.val(); // Lấy dữ liệu: { btn_status: 1 } hoặc 0
     console.log("🔥 Dữ liệu từ Firebase:", data);
@@ -83,15 +124,27 @@ client.on("connect", () => {
 });
 
 
-
+const sensorRef = db.ref("nhom18/sensor_history");
 // --- LUỒNG 1: Nhận từ ESP32 -> Đẩy ra Web ---
 client.on('message', (topic, message) => {
     if (topic === 'nhom18/control') {
+        // YÊU CẦU 4: Chuyển dữ liệu thời gian thực cho firebase
+
+        // Khi nhận mỗi gói dữ liệu từ ESP32
         // Chuyển Buffer thành String rồi thành JSON object
         try {
             const data = JSON.parse(message.toString());
-            console.log('Data từ ESP:', data);
-            io.emit('sensor-update', data); // Gửi socket xuống Web
+            console.log('Data từ ESP:', data);            
+            io.emit('sensor-update', data);// Gửi realtime ra web
+
+            // --- LƯU LỊCH SỬ LÊN FIREBASE ---
+            const timestamp = Date.now();
+            sensorRef.push({
+                time: timestamp,     // thời gian UNIX
+                distance: data.distance,
+                light: data.light
+            });
+
         } catch (e) {
             console.error("Lỗi parse JSON:", e);
         }
@@ -111,6 +164,10 @@ io.on('connection', (socket) => {
     });
 });
 
+
+
+
 server.listen(3000, () => {
     console.log('🏃‍♂️‍➡️🏃‍♂️‍➡️🏃‍♂️‍➡️ Server chạy tại: http://localhost:3000');
 });
+
