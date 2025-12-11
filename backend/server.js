@@ -24,7 +24,7 @@ const db = admin.database();
 // Kết nối telegram
 const axios = require('axios');
 
-const TELEGRAM_TOKEN = "YOUR_BOT_TOKEN";
+const TELEGRAM_TOKEN = "8422601470:AAFwLgt0QWNWbZBHiUlhoI4c27eYYR7dzc4";
 const CHAT_ID = ["8116174154"
 ];
 
