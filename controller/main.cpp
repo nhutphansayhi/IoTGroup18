@@ -24,8 +24,8 @@ void callback(char* topic, byte* message, unsigned int length);
 
 // --- 1. CẤU HÌNH WIFI & MQTT ---
 
-const char* ssid = "Thien Nhan^.^"; 
-const char* password = "22092005.";
+const char* ssid = "NHE TENH coffee Tret"; 
+const char* password = "1ngaynhetenh";
 const char* mqtt_server = "broker.hivemq.com";
 const char* mqtt_topic = "nhom18/control";
 const char* mqtt_data_topic = "nhom18/data/status";
@@ -43,7 +43,12 @@ const long RECONNECT_INTERVAL = 5000; // Thử lại kết nối sau 5s
 #define LDR_PIN 34      
 #define BUTTON_PIN 15   
 #define RELAY_PIN 4     
-#define BUZZER_PIN 21
+#define BUZZER_PIN 23
+#define TRIG_PIN 5 
+#define ECHO_PIN 17
+#define SDA_PIN 18
+#define SCL_PIN 19
+
 
 WiFiClient espClient;
 PubSubClient client(espClient);

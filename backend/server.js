@@ -11,6 +11,8 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+let productOn = false;
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -66,11 +68,16 @@ const buttonRef = db.ref("nhom18/button_status"); // Đường dẫn phải kh�
 
 buttonRef.on("value", (snapshot) => {
     const data = snapshot.val(); // Lấy dữ liệu: { btn_status: 1 } hoặc 0
-    console.log("🔥 Dữ liệu từ Firebase:", data);
+    // const isOn = data.btn_status === 1;
+    if (!data) return;
+
     
-    if (data) {
+
+    if (data.btn_status === 0) {
+        productOn = !productOn; 
         // Gửi xuống Web qua Socket.io
-        io.emit('button-update', data); 
+        io.emit('button-update', {productOn: productOn}); 
+        console.log("Trạng thái nút", productOn);
     }
 }, (errorObject) => {
     console.log("Lỗi đọc Firebase: " + errorObject.name);

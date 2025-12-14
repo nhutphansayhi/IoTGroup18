@@ -98,8 +98,8 @@
           <h3 class="control-title">Product Status</h3>
           <div class="status-info">
             <p class="status-label">Current Status</p>
-            <p class="status-value">POWERED OFF</p>
-            <p class="status-note">Status: Product is currently powered off</p>
+            <p class="status-value" id = "productStatusText">POWERED OFF</p>
+            <p class="status-note" id = "productStatusNote">Status: Product is currently powered off</p>
           </div>
         </div>
 
@@ -329,6 +329,27 @@
       // Socket.IO - Real-time updates
       socket.on("sensor-update", (data) => {
         updateDashboard(data);
+
+
+      });
+
+      socket.on("button-update", (data) => {
+      // data dự kiến: { btn_status: 1 } hoặc { btn_status: 0 }
+        console.log(data);
+        const productOn = data.productOn;
+
+        const statusTextEl = document.getElementById("productStatusText");
+        const statusNoteEl = document.getElementById("productStatusNote");
+
+        if (productOn) {
+          // Nút đang ở trạng thái BẬT
+          statusTextEl.textContent = "POWERED ON";
+          statusNoteEl.textContent = "Status: Product is currently powered on";
+        } else {
+          // Nút đang ở trạng thái TẮT
+          statusTextEl.textContent = "POWERED OFF";
+          statusNoteEl.textContent = "Status: Product is currently powered off";
+        }
       });
 
       function updateDashboard(data) {
@@ -350,6 +371,8 @@
           hour: "2-digit",
           minute: "2-digit",
         });
+
+
         timeLabels.push(now);
         distanceData.push(data.distance);
         lightData.push(data.light);
