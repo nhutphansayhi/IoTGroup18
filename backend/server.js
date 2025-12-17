@@ -64,21 +64,19 @@ app.post('/api/register', async (req, res) => {
 
 
 // --- PHẦN MỚI: LẮNG NGHE FIREBASE (Luồng ESP32 -> Web) ---
-const buttonRef = db.ref("nhom18/button_status"); // Đường dẫn phải khớp với code ESP32
+const buttonRef = db.ref("nhom18/pro_status"); // Đường dẫn phải khớp với code ESP32
 
 buttonRef.on("value", (snapshot) => {
     const data = snapshot.val(); // Lấy dữ liệu: { btn_status: 1 } hoặc 0
     // const isOn = data.btn_status === 1;
-    if (!data) return;
+    if (!data || data.status === undefined) return;
+
+    const proState = data.status;
+
+    io.emit('button-update', {productOn: proState}); 
+    console.log("Trạng thái nút", proState);
 
     
-
-    if (data.btn_status === 0) {
-        productOn = !productOn; 
-        // Gửi xuống Web qua Socket.io
-        io.emit('button-update', {productOn: productOn}); 
-        console.log("Trạng thái nút", productOn);
-    }
 }, (errorObject) => {
     console.log("Lỗi đọc Firebase: " + errorObject.name);
 });
@@ -86,14 +84,14 @@ buttonRef.on("value", (snapshot) => {
 
 client.on("connect", () => {
   console.log("Đã kết nối MQTT Broker");
-  client.subscribe("nhom18/control");
+  client.subscribe("nhom18/data/sensor");
 });
 
 
 
 // --- LUỒNG 1: Nhận từ ESP32 -> Đẩy ra Web ---
 client.on('message', (topic, message) => {
-    if (topic === 'nhom18/control') {
+    if (topic === 'nhom18/data/sensor') {
         // Chuyển Buffer thành String rồi thành JSON object
         try {
             const data = JSON.parse(message.toString());

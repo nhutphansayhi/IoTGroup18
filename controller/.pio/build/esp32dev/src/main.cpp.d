@@ -290,4 +290,8 @@
  .pio/libdeps/esp32dev/Firebase\ Arduino\ Client\ Library\ for\ ESP8266\ and\ ESP32/src/functions/FB_Functions.h \
  .pio/libdeps/esp32dev/Firebase\ Arduino\ Client\ Library\ for\ ESP8266\ and\ ESP32/src/functions/FunctionsConfig.h \
  .pio/libdeps/esp32dev/Firebase\ Arduino\ Client\ Library\ for\ ESP8266\ and\ ESP32/src/functions/PolicyBuilder.h \
- .pio/libdeps/esp32dev/Firebase\ Arduino\ Client\ Library\ for\ ESP8266\ and\ ESP32/src/functions/FunctionsConfig.h
+ .pio/libdeps/esp32dev/Firebase\ Arduino\ Client\ Library\ for\ ESP8266\ and\ ESP32/src/functions/FunctionsConfig.h \
+ .pio/libdeps/esp32dev/LiquidCrystal_I2C/LiquidCrystal_I2C.h \
+ /Users/nhutphan/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src/Wire.h \
+ /Users/nhutphan/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp32-hal.h \
+ .pio/libdeps/esp32dev/BH1750/src/BH1750.h
