@@ -7,18 +7,32 @@ const admin = require("firebase-admin");
 const bodyParser = require('body-parser');
 const serviceAccount = require("./serviceAccountKey.json");
 
+//Pushsafer register
+const Pushsafer = require("pushsafer-notifications");
+
+const pushsafer = new Pushsafer({
+    k: "V8msZX5h1DtIak5fvP1y" // ← key của bạn
+});
+
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
 let productOn = false;
+let lastSettings = {
+    lightThreshold: null,
+    warningDistance: null,
+    dangerDistance: null
+};
+
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://smartsupportcardevice-default-rtdb.firebaseio.com"
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL: "https://smartsupportcardevice-default-rtdb.firebaseio.com"
 });
 
 const db = admin.database();
@@ -48,9 +62,9 @@ app.post('/api/register', async (req, res) => {
         });
 
         // 2. Gửi phản hồi thành công về Frontend (Mã 201 Created)
-        res.status(201).send({ 
-            message: 'Đăng ký thành công!', 
-            uid: userRecord.uid 
+        res.status(201).send({
+            message: 'Đăng ký thành công!',
+            uid: userRecord.uid
         });
 
     } catch (error) {
@@ -73,18 +87,79 @@ buttonRef.on("value", (snapshot) => {
 
     const proState = data.status;
 
-    io.emit('button-update', {productOn: proState}); 
+    io.emit('button-update', { productOn: proState });
     console.log("Trạng thái nút", proState);
 
-    
+
 }, (errorObject) => {
     console.log("Lỗi đọc Firebase: " + errorObject.name);
 });
+//PushSafer
+const settingsRef = db.ref("nhom18/settings");
+
+settingsRef.on("value", (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    const messages = [];
+
+    if (
+        lastSettings.lightThreshold !== null &&
+        data.lightThreshold !== lastSettings.lightThreshold
+    ) {
+        messages.push(
+            `💡 Light Threshold changed: ${lastSettings.lightThreshold} → ${data.lightThreshold} lux`
+        );
+    }
+
+    if (
+        lastSettings.warningDistance !== null &&
+        data.warningDistance !== lastSettings.warningDistance
+    ) {
+        messages.push(
+            `⚠️ Warning Distance changed: ${lastSettings.warningDistance} → ${data.warningDistance} cm`
+        );
+    }
+
+    if (
+        lastSettings.dangerDistance !== null &&
+        data.dangerDistance !== lastSettings.dangerDistance
+    ) {
+        messages.push(
+            `🚨 Danger Distance changed: ${lastSettings.dangerDistance} → ${data.dangerDistance} cm`
+        );
+    }
+
+    // Nếu có ít nhất 1 thay đổi → gửi push
+    if (messages.length > 0) {
+        pushsafer.send(
+            {
+                m: messages.join("\n"),
+                t: "Smart Parking Settings Updated",
+                s: 11, // sound
+                v: 1,  // vibration
+                i: 5   // icon
+            },
+            (err, result) => {
+                if (err) console.error("Pushsafer error:", err);
+                else console.log("Push notification sent:", result);
+            }
+        );
+    }
+
+    // Cập nhật giá trị cũ
+    lastSettings = {
+        lightThreshold: data.lightThreshold,
+        warningDistance: data.warningDistance,
+        dangerDistance: data.dangerDistance
+    };
+});
+
 // ----------------------------------------------------------
 
 client.on("connect", () => {
-  console.log("Đã kết nối MQTT Broker");
-  client.subscribe("nhom18/data/sensor");
+    console.log("Đã kết nối MQTT Broker");
+    client.subscribe("nhom18/data/sensor");
 });
 
 
@@ -116,6 +191,6 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(3000, () => {
-    console.log('🏃‍♂️‍➡️🏃‍♂️‍➡️🏃‍♂️‍➡️ Server chạy tại: http://localhost:3000');
+server.listen(5000, () => {
+    console.log('🏃‍♂️‍➡️🏃‍♂️‍➡️🏃‍♂️‍➡️ Server chạy tại: http://localhost:5000');
 });

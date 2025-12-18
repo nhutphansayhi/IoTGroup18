@@ -5,7 +5,6 @@
 #include <Firebase_ESP_Client.h>
 #include <LiquidCrystal_I2C.h>  // LCD I2C
 #include <Wire.h>
-#include <BH1750.h>
 
 #define FIREBASE_HOST "https://smartsupportcardevice-default-rtdb.firebaseio.com"
 #define FIREBASE_AUTH "GiZP3gMeY8tM7n72Qis06Fe6aaAwTaPEEQro7Ga2"
@@ -27,8 +26,8 @@ void callback(char* topic, byte* message, unsigned int length);
 
 // --- 1. CẤU HÌNH WIFI & MQTT ---
 
-const char* ssid = "nhutphansayhi"; 
-const char* password = "lopdaihoc";
+const char* ssid = "Gia Phu"; 
+const char* password = "12092005";
 const char* mqtt_server = "broker.hivemq.com";
 const char* mqtt_topic = "nhom18/control";
 const char* mqtt_data_topic = "nhom18/data/status";
@@ -80,8 +79,6 @@ PubSubClient client(espClient);
 // LCD I2C (địa chỉ 0x27, 16 cột, 2 hàng)
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
-// Khai bao cam bien anh sang
-BH1750 lightMeter(0x5C);
 // Biến lưu settings từ Firebase
 int lightThreshold = 860;
 int warningDistance = 50;
@@ -92,6 +89,8 @@ bool proStatus = false;
 bool flag = false;
 unsigned long lastFirebaseStatusRead = 0;
 unsigned long lastMqttSend = 0;
+unsigned long lastDataSend = 0;
+unsigned long lastLightTime = 0;
 unsigned long lastFirebaseRead = 0;
 bool isBuzzerBlinking = false;
 
@@ -168,8 +167,16 @@ void callback(char* topic, byte* message, unsigned int length){
             
             // CHỈ XỬ LÝ LỆNH NẾU CHÚNG TỒN TẠI
             if (strcmp(device,"RELAY") == 0){
-                if (strcmp(status, "ON") == 0) digitalWrite(RELAY_PIN, HIGH);
-                else digitalWrite(RELAY_PIN, LOW);
+                if (strcmp(status, "ON") == 0) 
+                {
+                    digitalWrite(RELAY_PIN, HIGH);
+                    lightStatus=true;
+                }
+                else 
+                {
+                    digitalWrite(RELAY_PIN, LOW);
+                    lightStatus=false;
+                }
             }
             else if (strcmp(device,"BUZZER") == 0){
                 if (strcmp(status,"ON") == 0){
@@ -346,8 +353,18 @@ float getDistance() {
     digitalWrite(TRIG_PIN, HIGH);
     delayMicroseconds(10);
     digitalWrite(TRIG_PIN, LOW);
-    long duration = pulseIn(ECHO_PIN, HIGH, 30000); // timeout 30ms
-    if (duration == 0) return -1; // Không nhận được phản hồi
+    
+    // Thêm timeout khoảng 23500 micros (~4 mét) để tránh treo quá lâu
+    long duration = pulseIn(ECHO_PIN, HIGH, 23500); 
+    
+    if (duration == 0) {
+        // Thử dọn dẹp chân Echo nếu bị kẹt
+        pinMode(ECHO_PIN, OUTPUT);
+        digitalWrite(ECHO_PIN, LOW);
+        pinMode(ECHO_PIN, INPUT);
+        return -1;
+    }
+    
     return duration * 0.034 / 2;
 }
 
@@ -437,9 +454,9 @@ void setup() {
     pinMode(BUTTON_PIN, INPUT_PULLUP); // ✅ Sửa lỗi: Dùng INPUT_PULLUP
     pinMode(TRIG_PIN, OUTPUT);  // Ultrasonic trigger
     pinMode(ECHO_PIN, INPUT);   // Ultrasonic echo
+    pinMode(LDR_PIN, INPUT);
     
-    Wire.begin(21, 22);
-    lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE);
+    
     // Khởi tạo LCD
     lcd.init();
     lcd.backlight();
@@ -449,17 +466,10 @@ void setup() {
     lcd.print("Starting...");
     
     
-    
     WiFi.disconnect(true); // Xóa thông tin WiFi cũ
 
     // KHỞI TẠO MẠNG
     setup_wifi();
-
-    fbdo.setResponseSize(4096); // Tăng bộ đệm phản hồi lên 4KB
-    fbdoStream.setResponseSize(4096);
-    
-    // Cấu hình bộ đệm SSL (Rất quan trọng cho HTTPS)
-    client.setBufferSize(4096); // Cho MQTT
 
     if (!Firebase.RTDB.beginStream(&fbdoStream, "/nhom18")) {
         Serial.print("Stream begin failed: ");
@@ -480,6 +490,7 @@ void setup() {
 }
 
 void loop() {
+   
     // --- PHẦN 0: KHỞI ĐỘNG HỆ THỐNG
     // --- PHẦN : LOGIC ĐỌC NÚT VÀ GỬI DỮ LIỆU ---
         // Logic này không bị delay() trong reconnect chặn lại nữa
@@ -502,7 +513,6 @@ void loop() {
         lastMqttRetry = millis();//serviceAccountKey.json
         }
     } else {
-        
         // ✅ KHI NÚT VẬT LÝ BẤM
         bool currentButtonState = digitalRead(BUTTON_PIN);
         if (currentButtonState != lastButtonState) {
@@ -536,6 +546,7 @@ void loop() {
         }
         
         // 3. proStatus logic (Firebase sẽ tự update qua stream, không cần đọc)
+        
         if (proStatus == true) {
             if (flag == false) {
                 // startupSystem();
@@ -545,10 +556,14 @@ void loop() {
             
             
 
-
             float distance = getDistance();
-            float light = lightMeter.readLightLevel();
-
+            while (distance==-1){
+                distance = getDistance();
+                delay(50); //Tránh bị nhiễu
+                
+            }
+            
+            float light=analogRead(LDR_PIN);
             // bao dong khi qua gan 
             if (distance <= 20){
                 buzzerWarring(0);
@@ -562,7 +577,7 @@ void loop() {
             
             
             // Gửi sensor
-            if (millis() - lastMqttSend > 1000 && client.connected()) {
+            if (millis() - lastMqttSend > 2000 && client.connected()) {
                 
 
                 Serial.println(distance);
@@ -577,6 +592,18 @@ void loop() {
                 client.publish("nhom18/data/sensor", payload.c_str());
                 
                 lastMqttSend = millis();
+            }
+
+            // --- BẬT ĐÈN NẾU TRỜI TỐI ---
+            if (millis() - lastLightTime > 2000) {
+                if (!lightStatus) {
+                    if (light < lightThreshold) {
+                        digitalWrite(RELAY_PIN, HIGH);
+                    } else {
+                        digitalWrite(RELAY_PIN, LOW);
+                    }
+                }
+                lastLightTime = millis();
             }
             
             // Đọc settings (1 lần mỗi 5 giây, không ưu tiên cao)
@@ -604,5 +631,7 @@ void loop() {
         }
         else 
             digitalWrite(BUZZER_PIN,LOW);
+
+        
     }
 }
