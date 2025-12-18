@@ -242,10 +242,15 @@
 
     window.saveThreshold = function () {
       const threshold = document.getElementById("lightThreshold").value;
-      set(ref(database, 'nhom18/settings/lightThreshold'), parseInt(threshold))
+      
+      const updates = {};
+      updates['nhom18/settings/lightThreshold'] = parseInt(threshold);
+      updates['nhom18/settings/lastUser'] = currentUserEmail;
+
+      update(ref(database), updates)
         .then(() => {
           console.log("Light threshold saved to Firebase:", threshold);
-          showToast('success', 'Light threshold saved!');
+          showToast('success', '✓ Light threshold saved!');
         })
         .catch((error) => {
           console.error("Error saving threshold:", error);
@@ -261,6 +266,7 @@
       const updates = {};
       updates['warningDistance'] = warningDist;
       updates['dangerDistance'] = dangerDist;
+      updates['lastUser'] = currentUserEmail; // 👈 Thêm email người dùng
 
       update(ref(database, 'nhom18/settings'), updates)
         .then(() => {

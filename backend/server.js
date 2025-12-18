@@ -14,6 +14,16 @@ const pushsafer = new Pushsafer({
     k: "V8msZX5h1DtIak5fvP1y" // ← key của bạn
 });
 
+// Nodemailer Config
+const nodemailer = require('nodemailer');
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'webservicee99@gmail.com', //  Thay bằng email của bạn
+        pass: 'rlrp fkfp gskg hlty'      //  Thay bằng App Password
+    }
+});
+
 
 const app = express();
 const server = http.createServer(app);
@@ -145,6 +155,32 @@ settingsRef.on("value", (snapshot) => {
                 else console.log("Push notification sent:", result);
             }
         );
+
+        // --- GỬI EMAIL ---
+        const receiver = data.lastUser || 'default-admin@gmail.com'; 
+        const mailOptions = {
+            from: '"Smart Parking System" <no-reply@smartparking.com>',
+            to: receiver, 
+            subject: '⚠️ Xác nhận: Bạn vừa thay đổi cài đặt hệ thống',
+            text: messages.join("\n") + "\n\nĐây là tin nhắn tự động.",
+            html: `
+                <h3>Smart Parking Settings Updated</h3>
+                <p>Xin chào <b>${receiver}</b>,</p>
+                <p>Hệ thống ghi nhận bạn vừa thay đổi các cài đặt sau:</p>
+                <ul>
+                    ${messages.map(msg => `<li>${msg}</li>`).join('')}
+                </ul>
+                <p><i>Nếu không phải bạn, vui lòng kiểm tra lại tài khoản.</i></p>
+            `
+        };
+
+        transporter.sendMail(mailOptions, function(error, info){
+            if (error) {
+                console.log("Email Error:", error);
+            } else {
+                console.log('Email sent: ' + info.response);
+            }
+        });
     }
 
     // Cập nhật giá trị cũ
