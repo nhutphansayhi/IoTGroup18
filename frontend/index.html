@@ -1,579 +1,558 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Smart Parking Assist</title>
-    <link rel="stylesheet" href="style.css" />
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  </head>
-  <body>
-    <!-- Toast Container -->
-    <div class="toast-container" id="toastContainer"></div>
 
-    <!-- Header -->
-    <header class="header">
-      <div class="header-content">
-        <h1 class="logo">Smart Parking Assist</h1>
-        <div class="user-info">
-          <span>Hello, <strong id="username">11111</strong></span>
-          <button class="btn-logout" onclick="logout()">Logout</button>
-        </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Parking Assist</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <h1 class="logo">Smart Parking Assist</h1>
+      <div class="user-info">
+        <span>Hello, <strong id="username">11111</strong></span>
+        <button class="btn-logout" onclick="logout()">Logout</button>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <!-- Main Dashboard -->
-    <main class="main-container">
-      <!-- Status Cards -->
-      <div class="status-grid">
-        <div class="status-card">
-          <h3 class="card-title">Distance to Obstacle</h3>
-          <div class="card-value" id="distance">12 cm</div>
-          <span class="badge badge-danger">DANGER</span>
-        </div>
-
-        <div class="status-card">
-          <h3 class="card-title">Ambient Light Level</h3>
-          <div class="card-value" id="lightLevel">693 lux</div>
-        </div>
-
-        <div class="status-card">
-          <h3 class="card-title">Buzzer Status</h3>
-          <div class="card-value" id="buzzerStatus">ON</div>
-          <span class="badge badge-active">ACTIVE</span>
-          <button
-            class="btn-control btn-control-primary"
-            onclick="toggleBuzzer()"
-          >
-            Turn Off
-          </button>
-        </div>
-
-        <div class="status-card">
-          <h3 class="card-title">Garage Lamp Status</h3>
-          <div class="card-value" id="lampStatus">OFF</div>
-          <span class="badge badge-off">OFF</span>
-          <button
-            class="btn-control btn-control-secondary"
-            onclick="toggleLamp()"
-          >
-            Turn On
-          </button>
-        </div>
+  <!-- Main Dashboard -->
+  <main class="main-container">
+    <!-- Status Cards -->
+    <div class="status-grid">
+      <div class="status-card">
+        <h3 class="card-title">Distance to Obstacle</h3>
+        <div class="card-value" id="distance">12 cm</div>
+        <span class="badge badge-danger">DANGER</span>
       </div>
 
-      <!-- Time Range Buttons -->
-      <div class="time-filter">
-        <button class="btn-time" onclick="setTimeRange('1h')">
-          Last 1 hour
-        </button>
-        <button class="btn-time active" onclick="setTimeRange('24h')">
-          Last 24 hours
-        </button>
-        <button class="btn-time" onclick="setTimeRange('7d')">
-          Last 7 days
+      <div class="status-card">
+        <h3 class="card-title">Ambient Light Level</h3>
+        <div class="card-value" id="lightLevel">693 lux</div>
+      </div>
+
+      <div class="status-card">
+        <h3 class="card-title">Buzzer Status</h3>
+        <div class="card-value" id="buzzerStatus">ON</div>
+        <span class="badge badge-active">ACTIVE</span>
+        <button class="btn-control btn-control-primary" onclick="toggleBuzzer()">
+          Turn Off
         </button>
       </div>
 
-      <!-- Charts Section -->
-      <div class="charts-grid">
-        <div class="chart-card">
-          <h3 class="chart-title">Distance Over Time</h3>
-          <canvas id="distanceChart"></canvas>
-        </div>
+      <div class="status-card">
+        <h3 class="card-title">Garage Lamp Status</h3>
+        <div class="card-value" id="lampStatus">OFF</div>
+        <span class="badge badge-off">OFF</span>
+        <button class="btn-control btn-control-secondary" onclick="toggleLamp()">
+          Turn On
+        </button>
+      </div>
+    </div>
 
-        <div class="chart-card">
-          <h3 class="chart-title">Light Level Over Time</h3>
-          <canvas id="lightChart"></canvas>
+    <!-- Time Range Buttons -->
+    <div class="time-filter">
+      <button class="btn-time" onclick="setTimeRange('1h')">
+        Last 1 hour
+      </button>
+      <button class="btn-time active" onclick="setTimeRange('24h')">
+        Last 24 hours
+      </button>
+      <button class="btn-time" onclick="setTimeRange('7d')">
+        Last 7 days
+      </button>
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h3 class="chart-title">Distance Over Time</h3>
+        <canvas id="distanceChart"></canvas>
+      </div>
+
+      <div class="chart-card">
+        <h3 class="chart-title">Light Level Over Time</h3>
+        <canvas id="lightChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Danger Events Chart -->
+    <div class="chart-card full-width">
+      <h3 class="chart-title">Danger Events Per Day</h3>
+      <canvas id="dangerChart"></canvas>
+    </div>
+
+    <!-- Control Cards -->
+    <div class="control-grid">
+      <div class="control-card">
+        <h3 class="control-title">Product Status</h3>
+        <div class="status-info">
+          <p class="status-label">Current Status</p>
+          <p class="status-value" id="productStatusText">POWERED OFF</p>
+          <p class="status-note" id="productStatusNote">Status: Product is currently powered off</p>
         </div>
       </div>
 
-      <!-- Danger Events Chart -->
-      <div class="chart-card full-width">
-        <h3 class="chart-title">Danger Events Per Day</h3>
-        <canvas id="dangerChart"></canvas>
+      <div class="control-card">
+        <h3 class="control-title">Remote Activation</h3>
+        <div class="status-info">
+          <p class="status-note">
+            Status: The parking assist system is currently
+            <strong>INACTIVE</strong>
+          </p>
+        </div>
+        <button class="btn-primary" onclick="activateSystem()">
+          Activate System
+        </button>
       </div>
 
-      <!-- Control Cards -->
-      <div class="control-grid">
-        <div class="control-card">
-          <h3 class="control-title">Product Status</h3>
-          <div class="status-info">
-            <p class="status-label">Current Status</p>
-            <p class="status-value" id = "productStatusText">POWERED OFF</p>
-            <p class="status-note" id = "productStatusNote">Status: Product is currently powered off</p>
-          </div>
-        </div>
-
-        <div class="control-card">
-          <h3 class="control-title">Remote Activation</h3>
-          <div class="status-info">
-            <p class="status-note">
-              Status: The parking assist system is currently
-              <strong>INACTIVE</strong>
-            </p>
-          </div>
-          <button class="btn-primary" onclick="activateSystem()">
-            Activate System
-          </button>
-        </div>
-
-        <div class="control-card">
-          <h3 class="control-title">Light Control</h3>
-          <div class="threshold-control">
-            <label>Light Activation Threshold (lux)</label>
-            <input
-              type="range"
-              id="lightThreshold"
-              min="0"
-              max="2000"
-              value="860"
-              oninput="updateLightThreshold(this.value)"
-            />
-            <div class="threshold-value">
-              <span
-                >Current Threshold:
-                <strong id="lightThresholdValue">860</strong> lux</span
-              >
-            </div>
-            <p class="threshold-note">
-              How it works: When ambient light drops below
-              <strong>860 lux</strong>, the garage lamp will automatically turn
-              on.
-            </p>
-          </div>
-          <button class="btn-primary" onclick="saveThreshold()">
-            Save Threshold
-          </button>
-        </div>
-
-        <div class="control-card">
-          <h3 class="control-title">Settings</h3>
-          <div class="settings-group">
-            <label>Warning Distance Threshold (cm)</label>
-            <input
-              type="number"
-              id="warningDistance"
-              value="50"
-              class="input-field"
-            />
-          </div>
-          <div class="settings-group">
-            <label>Danger Distance Threshold (cm)</label>
-            <input
-              type="number"
-              id="dangerDistance"
-              value="20"
-              class="input-field"
-            />
+      <div class="control-card">
+        <h3 class="control-title">Light Control</h3>
+        <div class="threshold-control">
+          <label>Light Activation Threshold (lux)</label>
+          <input type="range" id="lightThreshold" min="0" max="2000" value="860"
+            oninput="updateLightThreshold(this.value)" />
+          <div class="threshold-value">
+            <span>Current Threshold:
+              <strong id="lightThresholdValue">860</strong> lux</span>
           </div>
           <p class="threshold-note">
-            How thresholds work: If distance ≥ danger threshold →
-            <span class="badge badge-danger">DANGER</span>. Else if distance ≥
-            warning threshold →
-            <span class="badge badge-warning">WARNING</span>. Else →
-            <span class="badge badge-safe">SAFE</span>.
+            How it works: When ambient light drops below
+            <strong>860 lux</strong>, the garage lamp will automatically turn
+            on.
           </p>
-          <button class="btn-primary" onclick="saveSettings()">
-            Save Changes
-          </button>
         </div>
+        <button class="btn-primary" onclick="saveThreshold()">
+          Save Threshold
+        </button>
       </div>
-    </main>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { update, getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        
-        // ⚠️ DÁN CONFIG FIREBASE CỦA BẠN VÀO ĐÂY (PHẢI KHỚP VỚI LOGIN.HTML)
-        const firebaseConfig = {
-            apiKey: "AIzaSyBJjLatTYnevEv9Irljn36pQm7SMz8C_a8",
-            authDomain: "smartsupportcardevice.firebaseapp.com",
-            projectId: "smartsupportcardevice",
-            databaseURL: "https://smartsupportcardevice-default-rtdb.firebaseio.com"
-        };
+      <div class="control-card">
+        <h3 class="control-title">Settings</h3>
+        <div class="settings-group">
+          <label>Warning Distance Threshold (cm)</label>
+          <input type="number" id="warningDistance" value="50" class="input-field" />
+        </div>
+        <div class="settings-group">
+          <label>Danger Distance Threshold (cm)</label>
+          <input type="number" id="dangerDistance" value="20" class="input-field" />
+        </div>
+        <p class="threshold-note">
+          How thresholds work: If distance ≥ danger threshold →
+          <span class="badge badge-danger">DANGER</span>. Else if distance ≥
+          warning threshold →
+          <span class="badge badge-warning">WARNING</span>. Else →
+          <span class="badge badge-safe">SAFE</span>.
+        </p>
+        <button class="btn-primary" onclick="saveSettings()">
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </main>
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const database = getDatabase(app);  // Firebase Realtime Database
-        
-        let currentUserEmail = "Guest"; 
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { update, getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // 1. LOGIC BẢO VỆ DASHBOARD
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // ĐÃ ĐĂNG NHẬP: Gán email và cho phép chạy Dashboard
-                currentUserEmail = user.email;
-                document.getElementById("username").textContent = currentUserEmail;
-                
-                // Cập nhật localStorage (cho các hàm cũ của bạn)
-                localStorage.setItem("username", currentUserEmail); 
+    // ⚠️ DÁN CONFIG FIREBASE CỦA BẠN VÀO ĐÂY (PHẢI KHỚP VỚI LOGIN.HTML)
+    const firebaseConfig = {
+      apiKey: "AIzaSyBJjLatTYnevEv9Irljn36pQm7SMz8C_a8",
+      authDomain: "smartsupportcardevice.firebaseapp.com",
+      projectId: "smartsupportcardevice",
+      databaseURL: "https://smartsupportcardevice-default-rtdb.firebaseio.com"
+    };
 
-            } else {
-                // CHƯA ĐĂNG NHẬP: Chuyển hướng về trang Login
-                console.log("User chưa đăng nhập, chuyển hướng...");
-                window.location.href = "login.html"; 
-            }
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const database = getDatabase(app);  // Firebase Realtime Database
+
+    let currentUserEmail = "Guest";
+
+    // 1. LOGIC BẢO VỆ DASHBOARD
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // ĐÃ ĐĂNG NHẬP: Gán email và cho phép chạy Dashboard
+        currentUserEmail = user.email;
+        document.getElementById("username").textContent = currentUserEmail;
+
+        // Cập nhật localStorage (cho các hàm cũ của bạn)
+        localStorage.setItem("username", currentUserEmail);
+
+      } else {
+        // CHƯA ĐĂNG NHẬP: Chuyển hướng về trang Login
+        console.log("User chưa đăng nhập, chuyển hướng...");
+        window.location.href = "login.html";
+      }
+    });
+
+    // 2. CHỨC NĂNG LOGOUT BẢO MẬT (Để nó ghi đè hàm logout cũ)
+    window.logout = function () {
+      // Xóa session Firebase
+      signOut(auth).then(() => {
+        // Xóa username khỏi localStorage và chuyển hướng
+        localStorage.removeItem("username");
+        window.location.href = "login.html";
+      }).catch((error) => {
+        console.error("Lỗi đăng xuất:", error);
+      });
+    }
+
+    // 3. HÀM GỬI SETTINGS LÊN FIREBASE
+    function loadSettingsFromFirebase() {
+      const settingsRef = ref(database, 'nhom18/settings');
+
+      // Lắng nghe thay đổi (Nếu ai đó chỉnh trên ESP32 hoặc điện thoại khác, Web này tự cập nhật theo)
+      onValue(settingsRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          // Cập nhật Light Threshold
+          if (data.lightThreshold !== undefined) {
+            document.getElementById("lightThreshold").value = data.lightThreshold;
+            document.getElementById("lightThresholdValue").textContent = data.lightThreshold;
+          }
+          // Cập nhật Warning Distance
+          if (data.warningDistance !== undefined) {
+            document.getElementById("warningDistance").value = data.warningDistance;
+            document.getElementById("warningThresholdValue").textContent = data.warningThreshold;
+          }
+          // Cập nhật Danger Distance
+          if (data.dangerDistance !== undefined) {
+            document.getElementById("dangerDistance").value = data.dangerDistance;
+            document.getElementById("dangtThresholdValue").textContent = data.lightThreshold;
+          }
+        }
+      });
+    }
+
+
+
+    window.saveThreshold = function () {
+      const threshold = document.getElementById("lightThreshold").value;
+      set(ref(database, 'nhom18/settings/lightThreshold'), parseInt(threshold))
+        .then(() => {
+          console.log("Light threshold saved to Firebase:", threshold);
+          showToast('success', 'Light threshold saved!');
+        })
+        .catch((error) => {
+          console.error("Error saving threshold:", error);
+          showToast('error', 'Error saving threshold');
         });
-        
-        // 2. CHỨC NĂNG LOGOUT BẢO MẬT (Để nó ghi đè hàm logout cũ)
-        window.logout = function() {
-            // Xóa session Firebase
-            signOut(auth).then(() => {
-                // Xóa username khỏi localStorage và chuyển hướng
-                localStorage.removeItem("username");
-                window.location.href = "login.html";
-            }).catch((error) => {
-                console.error("Lỗi đăng xuất:", error);
-            });
-        }
+    }
 
-        // 3. HÀM GỬI SETTINGS LÊN FIREBASE
-        function loadSettingsFromFirebase() {
-            const settingsRef = ref(database, 'nhom18/settings');
-            
-            // Lắng nghe thay đổi (Nếu ai đó chỉnh trên ESP32 hoặc điện thoại khác, Web này tự cập nhật theo)
-            onValue(settingsRef, (snapshot) => {
-                const data = snapshot.val();
-                if (data) {
-                    // Cập nhật Light Threshold
-                    if (data.lightThreshold !== undefined) {
-                        document.getElementById("lightThreshold").value = data.lightThreshold;
-                        document.getElementById("lightThresholdValue").textContent = data.lightThreshold;
-                    }
-                    // Cập nhật Warning Distance
-                    if (data.warningDistance !== undefined) {
-                        document.getElementById("warningDistance").value = data.warningDistance;
-                        document.getElementById("warningThresholdValue").textContent = data.warningThreshold;
-                    }
-                    // Cập nhật Danger Distance
-                    if (data.dangerDistance !== undefined) {
-                        document.getElementById("dangerDistance").value = data.dangerDistance;
-                        document.getElementById("dangtThresholdValue").textContent = data.lightThreshold;
-                    }
-                }
-            });
-        }
+    window.saveSettings = function () {
+      const warningDist = parseInt(document.getElementById("warningDistance").value);
+      const dangerDist = parseInt(document.getElementById("dangerDistance").value);
 
+      // Sử dụng update() thay vì set() để tránh ghi đè mất lightThreshold nếu có lỗi logic
+      const updates = {};
+      updates['nhom18/settings/warningDistance'] = warningDist;
+      updates['nhom18/settings/dangerDistance'] = dangerDist;
 
+      update(ref(database), updates)
+        .then(() => {
+          console.log("Đã lưu cài đặt khoảng cách");
+          showToast('success', 'Settings saved successfully!');
+        })
+        .catch((error) => {
+          console.error("Lỗi lưu settings:", error);
+          showToast('error', 'Error saving settings');
+        });
+    }
+  </script>
+  <script>
+    const socket = io();
+    let distanceChart, lightChart, dangerChart;
+    let distanceData = [];
+    let lightData = [];
+    let timeLabels = [];
+    let buzzerState = true; // true = ON, false = OFF
+    let lampState = false; // true = ON, false = OFF
 
-        window.saveThreshold = function() {
-            const threshold = document.getElementById("lightThreshold").value;
-            set(ref(database, 'nhom18/settings/lightThreshold'), parseInt(threshold))
-                .then(() => {
-                    console.log("Light threshold saved to Firebase:", threshold);
-                    showToast('success', 'Light threshold saved!');
-                })
-                .catch((error) => {
-                    console.error("Error saving threshold:", error);
-                    showToast('error', 'Error saving threshold');
-                });
-        }
+    // Toast Notification Function
+    function showToast(type, message) {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
 
-        window.saveSettings = function() {
-            const warningDist = parseInt(document.getElementById("warningDistance").value);
-            const dangerDist = parseInt(document.getElementById("dangerDistance").value);
+      const icons = {
+        success: '✓',
+        error: '✗',
+        info: 'ℹ'
+      };
 
-            // Sử dụng update() thay vì set() để tránh ghi đè mất lightThreshold nếu có lỗi logic
-            const updates = {};
-            updates['nhom18/settings/warningDistance'] = warningDist;
-            updates['nhom18/settings/dangerDistance'] = dangerDist;
-            
-            update(ref(database), updates)
-                .then(() => {
-                    console.log("Đã lưu cài đặt khoảng cách");
-                    showToast('success', 'Settings saved successfully!');
-                })
-                .catch((error) => {
-                    console.error("Lỗi lưu settings:", error);
-                    showToast('error', 'Error saving settings');
-                });
-        }
-    </script>
-    <script>
-      const socket = io();
-      let distanceChart, lightChart, dangerChart;
-      let distanceData = [];
-      let lightData = [];
-      let timeLabels = [];
-      let buzzerState = true; // true = ON, false = OFF
-      let lampState = false; // true = ON, false = OFF
-
-      // Toast Notification Function
-      function showToast(type, message) {
-        const container = document.getElementById('toastContainer');
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        
-        const icons = {
-          success: '✓',
-          error: '✗',
-          info: 'ℹ'
-        };
-        
-        toast.innerHTML = `
+      toast.innerHTML = `
           <span class="toast-icon">${icons[type] || '●'}</span>
           <span>${message}</span>
         `;
-        
-        container.appendChild(toast);
-        
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-          toast.remove();
-        }, 3000);
-      }
 
-      // Initialize Charts
-      window.onload = function () {
-        initCharts();
-        loadHistoricalData();
-        
-      };
+      container.appendChild(toast);
 
-      function initCharts() {
-        // Distance Chart
-        const distanceCtx = document
-          .getElementById("distanceChart")
-          .getContext("2d");
-        distanceChart = new Chart(distanceCtx, {
-          type: "line",
-          data: {
-            labels: timeLabels,
-            datasets: [
-              {
-                label: "Distance (cm)",
-                data: distanceData,
-                borderColor: "#6366f1",
-                backgroundColor: "rgba(99, 102, 241, 0.1)",
-                borderWidth: 2,
-                tension: 0.4,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              y: { beginAtZero: true, max: 140 },
+      // Auto remove after 3 seconds
+      setTimeout(() => {
+        toast.remove();
+      }, 3000);
+    }
+
+    // Initialize Charts
+    window.onload = function () {
+      initCharts();
+      loadHistoricalData();
+      loadSettingsFromFirebase();
+    };
+
+    function initCharts() {
+      // Distance Chart
+      const distanceCtx = document
+        .getElementById("distanceChart")
+        .getContext("2d");
+      distanceChart = new Chart(distanceCtx, {
+        type: "line",
+        data: {
+          labels: timeLabels,
+          datasets: [
+            {
+              label: "Distance (cm)",
+              data: distanceData,
+              borderColor: "#6366f1",
+              backgroundColor: "rgba(99, 102, 241, 0.1)",
+              borderWidth: 2,
+              tension: 0.4,
             },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, max: 140 },
           },
-        });
-
-        // Light Chart
-        const lightCtx = document.getElementById("lightChart").getContext("2d");
-        lightChart = new Chart(lightCtx, {
-          type: "line",
-          data: {
-            labels: timeLabels,
-            datasets: [
-              {
-                label: "Light Level (lux)",
-                data: lightData,
-                borderColor: "#10b981",
-                backgroundColor: "rgba(16, 185, 129, 0.1)",
-                borderWidth: 2,
-                tension: 0.4,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              y: { beginAtZero: true, max: 1000 },
-            },
-          },
-        });
-
-        // Danger Events Chart
-        const dangerCtx = document
-          .getElementById("dangerChart")
-          .getContext("2d");
-        dangerChart = new Chart(dangerCtx, {
-          type: "bar",
-          data: {
-            labels: ["Dec 8"],
-            datasets: [
-              {
-                label: "Danger Events",
-                data: [2],
-                backgroundColor: "#f97316",
-                borderRadius: 4,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              y: { beginAtZero: true },
-            },
-          },
-        });
-      }
-
-      // Socket.IO - Real-time updates
-      socket.on("sensor-update", (data) => {
-        updateDashboard(data);
+        },
       });
 
-      socket.on("button-update", (data) => {
+      // Light Chart
+      const lightCtx = document.getElementById("lightChart").getContext("2d");
+      lightChart = new Chart(lightCtx, {
+        type: "line",
+        data: {
+          labels: timeLabels,
+          datasets: [
+            {
+              label: "Light Level (lux)",
+              data: lightData,
+              borderColor: "#10b981",
+              backgroundColor: "rgba(16, 185, 129, 0.1)",
+              borderWidth: 2,
+              tension: 0.4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, max: 1000 },
+          },
+        },
+      });
+
+      // Danger Events Chart
+      const dangerCtx = document
+        .getElementById("dangerChart")
+        .getContext("2d");
+      dangerChart = new Chart(dangerCtx, {
+        type: "bar",
+        data: {
+          labels: ["Dec 8"],
+          datasets: [
+            {
+              label: "Danger Events",
+              data: [2],
+              backgroundColor: "#f97316",
+              borderRadius: 4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true },
+          },
+        },
+      });
+    }
+
+    // Socket.IO - Real-time updates
+    socket.on("sensor-update", (data) => {
+      updateDashboard(data);
+    });
+
+    socket.on("button-update", (data) => {
       // data dự kiến: { btn_status: 1 } hoặc { btn_status: 0 }
-        console.log(data);
-        const productOn = data.productOn;
+      console.log(data);
+      const productOn = data.productOn;
 
-        const statusTextEl = document.getElementById("productStatusText");
-        const statusNoteEl = document.getElementById("productStatusNote");
+      const statusTextEl = document.getElementById("productStatusText");
+      const statusNoteEl = document.getElementById("productStatusNote");
 
-        if (productOn) {
-          // Nút đang ở trạng thái BẬT
-          statusTextEl.textContent = "POWERED ON";
-          statusNoteEl.textContent = "Status: Product is currently powered on";
-        } else {
-          // Nút đang ở trạng thái TẮT
-          statusTextEl.textContent = "POWERED OFF";
-          statusNoteEl.textContent = "Status: Product is currently powered off";
-        }
+      if (productOn) {
+        // Nút đang ở trạng thái BẬT
+        statusTextEl.textContent = "POWERED ON";
+        statusNoteEl.textContent = "Status: Product is currently powered on";
+      } else {
+        // Nút đang ở trạng thái TẮT
+        statusTextEl.textContent = "POWERED OFF";
+        statusNoteEl.textContent = "Status: Product is currently powered off";
+      }
+    });
+
+    function updateDashboard(data) {
+      // Update status cards
+      document.getElementById("distance").textContent = `${data.distance} cm`;
+      document.getElementById("lightLevel").textContent = `${data.light} lux`;
+      document.getElementById("buzzerStatus").textContent = data.buzzer
+        ? "ON"
+        : "OFF";
+      document.getElementById("lampStatus").textContent = data.lamp
+        ? "ON"
+        : "OFF";
+
+      // Update button text
+      updateControlButtons();
+
+      // Update charts
+      const now = new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
       });
 
-      function updateDashboard(data) {
-        // Update status cards
-        document.getElementById("distance").textContent = `${data.distance} cm`;
-        document.getElementById("lightLevel").textContent = `${data.light} lux`;
-        document.getElementById("buzzerStatus").textContent = data.buzzer
-          ? "ON"
-          : "OFF";
-        document.getElementById("lampStatus").textContent = data.lamp
-          ? "ON"
-          : "OFF";
 
-        // Update button text
-        updateControlButtons();
+      timeLabels.push(now);
+      distanceData.push(data.distance);
+      lightData.push(data.light);
 
-        // Update charts
-        const now = new Date().toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-
-
-        timeLabels.push(now);
-        distanceData.push(data.distance);
-        lightData.push(data.light);
-
-        // Keep only last 50 data points
-        if (timeLabels.length > 50) {
-          timeLabels.shift();
-          distanceData.shift();
-          lightData.shift();
-        }
-
-        distanceChart.update();
-        lightChart.update();
-
-        // Update danger status
-        const dangerThreshold = parseInt(
-          document.getElementById("dangerDistance").value
-        );
-        if (data.distance <= dangerThreshold) {
-          document.querySelector(".badge-danger").style.display =
-            "inline-block";
-        }
+      // Keep only last 50 data points
+      if (timeLabels.length > 50) {
+        timeLabels.shift();
+        distanceData.shift();
+        lightData.shift();
       }
 
-      function loadHistoricalData() {
-        // Generate sample historical data
-        for (let i = 0; i < 24; i++) {
-          const hour = i.toString().padStart(2, "0") + ":00";
-          timeLabels.push(hour);
-          distanceData.push(Math.floor(Math.random() * 100) + 20);
-          lightData.push(Math.floor(Math.random() * 800) + 200);
-        }
-        distanceChart.update();
-        lightChart.update();
+      distanceChart.update();
+      lightChart.update();
+
+      // Update danger status
+      const dangerThreshold = parseInt(
+        document.getElementById("dangerDistance").value
+      );
+      if (data.distance <= dangerThreshold) {
+        document.querySelector(".badge-danger").style.display =
+          "inline-block";
+      }
+    }
+
+    function loadHistoricalData() {
+      // Generate sample historical data
+      for (let i = 0; i < 24; i++) {
+        const hour = i.toString().padStart(2, "0") + ":00";
+        timeLabels.push(hour);
+        distanceData.push(Math.floor(Math.random() * 100) + 20);
+        lightData.push(Math.floor(Math.random() * 800) + 200);
+      }
+      distanceChart.update();
+      lightChart.update();
+    }
+
+
+
+    function setTimeRange(range) {
+      document
+        .querySelectorAll(".btn-time")
+        .forEach((btn) => btn.classList.remove("active"));
+      event.target.classList.add("active");
+      // TODO: Load data for selected time range
+    }
+
+    function activateSystem() {
+      socket.emit("activate-system", { device: "SYSTEM", status: "ACTIVATE" });
+      alert("System activated!");
+    }
+
+    function toggleBuzzer() {
+      buzzerState = !buzzerState;
+      socket.emit("control-cmd", {
+        device: "BUZZER",
+        status: buzzerState ? "ON" : "OFF",
+      });
+      updateControlButtons();
+    }
+
+    function toggleLamp() {
+      lampState = !lampState;
+      socket.emit("control-cmd", {
+        device: "LAMP",
+        status: lampState ? "ON" : "OFF",
+      });
+      updateControlButtons();
+    }
+
+    function updateControlButtons() {
+      const buzzerBtn = document.querySelectorAll(".btn-control")[0];
+      const lampBtn = document.querySelectorAll(".btn-control")[1];
+
+      if (buzzerState) {
+        buzzerBtn.textContent = "Turn Off";
+        buzzerBtn.classList.remove("btn-control-secondary");
+        buzzerBtn.classList.add("btn-control-primary");
+      } else {
+        buzzerBtn.textContent = "Turn On";
+        buzzerBtn.classList.remove("btn-control-primary");
+        buzzerBtn.classList.add("btn-control-secondary");
       }
 
-      
-
-      function setTimeRange(range) {
-        document
-          .querySelectorAll(".btn-time")
-          .forEach((btn) => btn.classList.remove("active"));
-        event.target.classList.add("active");
-        // TODO: Load data for selected time range
+      if (lampState) {
+        lampBtn.textContent = "Turn Off";
+        lampBtn.classList.remove("btn-control-secondary");
+        lampBtn.classList.add("btn-control-primary");
+      } else {
+        lampBtn.textContent = "Turn On";
+        lampBtn.classList.remove("btn-control-primary");
+        lampBtn.classList.add("btn-control-secondary");
       }
+    }
 
-      function activateSystem() {
-        socket.emit("activate-system", { device: "SYSTEM", status: "ACTIVATE" });
-        alert("System activated!");
-      }
-
-      function toggleBuzzer() {
-        buzzerState = !buzzerState;
-        socket.emit("control-cmd", {
-          device: "BUZZER",
-          status: buzzerState ? "ON" : "OFF",
-        });
-        updateControlButtons();
-      }
-
-      function toggleLamp() {
-        lampState = !lampState;
-        socket.emit("control-cmd", {
-          device: "LAMP",
-          status: lampState ? "ON" : "OFF",
-        });
-        updateControlButtons();
-      }
-
-      function updateControlButtons() {
-        const buzzerBtn = document.querySelectorAll(".btn-control")[0];
-        const lampBtn = document.querySelectorAll(".btn-control")[1];
-
-        if (buzzerState) {
-          buzzerBtn.textContent = "Turn Off";
-          buzzerBtn.classList.remove("btn-control-secondary");
-          buzzerBtn.classList.add("btn-control-primary");
-        } else {
-          buzzerBtn.textContent = "Turn On";
-          buzzerBtn.classList.remove("btn-control-primary");
-          buzzerBtn.classList.add("btn-control-secondary");
-        }
-
-        if (lampState) {
-          lampBtn.textContent = "Turn Off";
-          lampBtn.classList.remove("btn-control-secondary");
-          lampBtn.classList.add("btn-control-primary");
-        } else {
-          lampBtn.textContent = "Turn On";
-          lampBtn.classList.remove("btn-control-primary");
-          lampBtn.classList.add("btn-control-secondary");
-        }
-      }
-
-      function updateLightThreshold(value) {
-        document.getElementById("lightThresholdValue").textContent = value;
-      }
-      
+    function updateLightThreshold(value) {
+      document.getElementById("lightThresholdValue").textContent = value;
+    }
 
 
-     //function saveThreshold() {
-        // Đã chuyển sang Firebase module ở trên
-     //   window.saveThreshold();
-     // }
+
+    //function saveThreshold() {
+    // Đã chuyển sang Firebase module ở trên
+    //   window.saveThreshold();
+    // }
 
     //  function saveSettings() {
-        // Đã chuyển sang Firebase module ở trên
+    // Đã chuyển sang Firebase module ở trên
     //    window.saveSettings();
-     // }
+    // }
 
-      
-    </script>
-  </body>
+
+  </script>
+</body>
+
 </html>

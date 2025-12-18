@@ -26,8 +26,8 @@ void callback(char* topic, byte* message, unsigned int length);
 
 // --- 1. CẤU HÌNH WIFI & MQTT ---
 
-const char* ssid = "Gia Phu"; 
-const char* password = "12092005";
+const char* ssid = "Thien Nhan^.^"; 
+const char* password = "22092005.";
 const char* mqtt_server = "broker.hivemq.com";
 const char* mqtt_topic = "nhom18/control";
 const char* mqtt_data_topic = "nhom18/data/status";
@@ -80,9 +80,9 @@ PubSubClient client(espClient);
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 // Biến lưu settings từ Firebase
-int lightThreshold = 860;
-int warningDistance = 50;
-int dangerDistance = 20;
+int lightThreshold = 0; // Loaded from Firebase
+int warningDistance = 0;
+int dangerDistance = 0;
 bool proStatus = false;
 // bool lastButtonStatus = false;
 // bool currentButtonStatus = false;
@@ -204,6 +204,7 @@ void updateLCD() {
     lcd.setCursor(8,0);
     lcd.print(" W:");
     lcd.print(warningDistance);
+    lcd.print("cm");
     
     lcd.setCursor(0, 1);
     lcd.print("D:");
@@ -354,8 +355,7 @@ float getDistance() {
     delayMicroseconds(10);
     digitalWrite(TRIG_PIN, LOW);
     
-    // Thêm timeout khoảng 23500 micros (~4 mét) để tránh treo quá lâu
-    long duration = pulseIn(ECHO_PIN, HIGH, 23500); 
+    long duration = pulseIn(ECHO_PIN, HIGH); 
     
     if (duration == 0) {
         // Thử dọn dẹp chân Echo nếu bị kẹt
@@ -557,10 +557,13 @@ void loop() {
             
 
             float distance = getDistance();
+            float timeNow=millis();
             while (distance==-1){
                 distance = getDistance();
                 delay(50); //Tránh bị nhiễu
-                
+                if (millis()-timeNow>1000){
+                    break;
+                }
             }
             
             float light=analogRead(LDR_PIN);
@@ -577,7 +580,7 @@ void loop() {
             
             
             // Gửi sensor
-            if (millis() - lastMqttSend > 2000 && client.connected()) {
+            if (millis() - lastMqttSend > 500 && client.connected()) {
                 
 
                 Serial.println(distance);
@@ -595,7 +598,7 @@ void loop() {
             }
 
             // --- BẬT ĐÈN NẾU TRỜI TỐI ---
-            if (millis() - lastLightTime > 2000) {
+            if (millis() - lastLightTime > 500) {
                 if (!lightStatus) {
                     if (light < lightThreshold) {
                         digitalWrite(RELAY_PIN, HIGH);
