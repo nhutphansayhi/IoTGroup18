@@ -212,28 +212,31 @@
     function loadSettingsFromFirebase() {
       const settingsRef = ref(database, 'nhom18/settings');
 
-      // Lắng nghe thay đổi (Nếu ai đó chỉnh trên ESP32 hoặc điện thoại khác, Web này tự cập nhật theo)
+      // Lắng nghe thay đổi
       onValue(settingsRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
           // Cập nhật Light Threshold
           if (data.lightThreshold !== undefined) {
-            document.getElementById("lightThreshold").value = data.lightThreshold;
-            document.getElementById("lightThresholdValue").textContent = data.lightThreshold;
+            const lightEl = document.getElementById("lightThreshold");
+            const lightValEl = document.getElementById("lightThresholdValue");
+            if (lightEl) lightEl.value = data.lightThreshold;
+            if (lightValEl) lightValEl.textContent = data.lightThreshold;
           }
           // Cập nhật Warning Distance
           if (data.warningDistance !== undefined) {
-            document.getElementById("warningDistance").value = data.warningDistance;
-            document.getElementById("warningThresholdValue").textContent = data.warningThreshold;
+            const warningEl = document.getElementById("warningDistance");
+            if (warningEl) warningEl.value = data.warningDistance;
           }
           // Cập nhật Danger Distance
           if (data.dangerDistance !== undefined) {
-            document.getElementById("dangerDistance").value = data.dangerDistance;
-            document.getElementById("dangtThresholdValue").textContent = data.lightThreshold;
+            const dangerEl = document.getElementById("dangerDistance");
+            if (dangerEl) dangerEl.value = data.dangerDistance;
           }
         }
       });
     }
+    window.loadSettingsFromFirebase = loadSettingsFromFirebase;
 
 
 
@@ -256,10 +259,10 @@
 
       // Sử dụng update() thay vì set() để tránh ghi đè mất lightThreshold nếu có lỗi logic
       const updates = {};
-      updates['nhom18/settings/warningDistance'] = warningDist;
-      updates['nhom18/settings/dangerDistance'] = dangerDist;
+      updates['warningDistance'] = warningDist;
+      updates['dangerDistance'] = dangerDist;
 
-      update(ref(database), updates)
+      update(ref(database, 'nhom18/settings'), updates)
         .then(() => {
           console.log("Đã lưu cài đặt khoảng cách");
           showToast('success', 'Settings saved successfully!');
