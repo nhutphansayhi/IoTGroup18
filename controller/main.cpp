@@ -8,7 +8,7 @@
 
 #define FIREBASE_HOST "https://smartsupportcardevice-default-rtdb.firebaseio.com"
 #define FIREBASE_AUTH "GiZP3gMeY8tM7n72Qis06Fe6aaAwTaPEEQro7Ga2"
-const char* FIREBASE_STATUS_PATH = "/nhom18/pro_status"; // 👈 Cần khai báo này
+const char* FIREBASE_STATUS_PATH = "/nhom18/pro_status"; 
 
 
 FirebaseConfig config;
@@ -124,7 +124,7 @@ void setup_wifi(){
         config.timeout.serverResponse = 10000;
 
         Firebase.begin(&config, &auth); 
-        Firebase.reconnectWiFi(true);
+        Firebase.reconnectWiFi(true); // Tự động kết nối lại wifi khi thư viện tắt
     }
 
     // Đã loại bỏ vòng lặp blocking. Sẽ chờ trong loop().
@@ -229,6 +229,7 @@ void streamCallback(FirebaseStream data) {
     // ----------------------------------------------------
     // 1. XỬ LÝ TRẠNG THÁI NÚT BẤM (/pro_status)
     // ----------------------------------------------------
+    //(trường hợp dự phòng thường không xảy ra)
     if (path == "/pro_status") {
         FirebaseJson json = data.jsonObject();
         FirebaseJsonData result;
@@ -284,37 +285,6 @@ void streamCallback(FirebaseStream data) {
         }
     }
 
-    // ----------------------------------------------------
-    else if (path == "/") {
-        Serial.println("=> Bulk Update at ROOT (/)");
-        FirebaseJson json = data.jsonObject();
-        FirebaseJsonData result;
-        bool changed = false;
-
-        // Lưu ý: Key lúc này sẽ kèm theo đường dẫn con
-        if (json.get(result, "settings/lightThreshold")) {
-            lightThreshold = result.to<int>();
-            Serial.print("   - Light: "); Serial.println(lightThreshold);
-            changed = true;
-        }
-
-        if (json.get(result, "settings/warningDistance")) {
-            warningDistance = result.to<int>();
-            Serial.print("   - Warning: "); Serial.println(warningDistance);
-            changed = true;
-        }
-
-        if (json.get(result, "settings/dangerDistance")) {
-            dangerDistance = result.to<int>();
-            Serial.print("   - Danger: "); Serial.println(dangerDistance);
-            changed = true;
-        }
-
-        if (changed && proStatus) {
-            updateLCD();
-            Serial.println("   LCD Updated from ROOT!");
-        }
-    }
 }
 
 
@@ -324,25 +294,26 @@ void streamTimeoutCallback(bool timeout) {
     }
 }
 
-// Hàm nháy đền "cảnh báo"
-void buzzerWarring(int level){
-    if (level == 1)
-    {
-        if ((millis()/2000)%2==0)
-            digitalWrite(BUZZER_PIN,HIGH);
-        else 
-            digitalWrite(BUZZER_PIN,LOW);
-    }
-    else if (level == 0){
-        if ((millis()/1000)%2==0)
-            digitalWrite(BUZZER_PIN,HIGH);
-        else 
-            digitalWrite(BUZZER_PIN,LOW);
-    }
-    else if (level == 2){
-        digitalWrite(BUZZER_PIN,LOW);
-    }
+void buzzerWarring(int level) {
+  // Chọn chu kỳ theo level
+  if (level == 2) {
+    digitalWrite(BUZZER_PIN, LOW); // Không cảnh báo
+    return;
+  } else if (level == 1) {
+    interval = 1000;  // Cảnh báo bình thường: 1s đổi trạng thái
+  } else if (level == 0) {
+    interval = 250;   // Cảnh báo khẩn cấp: 0.25s đổi trạng thái
+  }
+
+  unsigned long currentMillis = millis();
+
+  if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+    buzzerState = !buzzerState;
+    digitalWrite(BUZZER_PIN, buzzerState);
+  }
 }
+
 
 // Hàm nhay đèn "nguy hiểm"
 
@@ -378,6 +349,7 @@ void shutdownSystem(){
     lcd.print("Smart Parking");
     lcd.setCursor(0,1);
     lcd.print("System OFF");
+    delay(1000);
 }
 
 
@@ -389,6 +361,7 @@ void startupSystem() {
   lcd.print("Smart Parking");
   lcd.setCursor(0, 1);
   lcd.print("System ON");
+  delay(1000);
 
 //   for (int i = 0; i < sizeof(melody) / sizeof(int); i++) {
 //     ledcWriteTone(0, melody[i]);      // Phát nốt
@@ -451,7 +424,7 @@ void setup() {
     digitalWrite(BUZZER_PIN, LOW);
     pinMode(RELAY_PIN, OUTPUT);
     digitalWrite(RELAY_PIN, LOW);
-    pinMode(BUTTON_PIN, INPUT_PULLUP); // ✅ Sửa lỗi: Dùng INPUT_PULLUP
+    pinMode(BUTTON_PIN, INPUT_PULLUP); // Sửa lỗi: Dùng INPUT_PULLUP
     pinMode(TRIG_PIN, OUTPUT);  // Ultrasonic trigger
     pinMode(ECHO_PIN, INPUT);   // Ultrasonic echo
     pinMode(LDR_PIN, INPUT);
@@ -479,7 +452,7 @@ void setup() {
     // Gắn callback vào stream
     Firebase.RTDB.setStreamCallback(&fbdoStream, streamCallback, streamTimeoutCallback);
 
-    readSettingsFromFirebase();
+    // readSettingsFromFirebase();
     
     client.setServer(mqtt_server, 1883);
     client.setCallback(callback);
@@ -549,8 +522,7 @@ void loop() {
         
         if (proStatus == true) {
             if (flag == false) {
-                // startupSystem();
-                updateLCD();
+                startupSystem();
                 flag = true;
             }
             

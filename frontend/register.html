@@ -180,7 +180,7 @@
     </style>
 </head>
 <body>
-    <div class="toast-container" id="toastContainer"></div>
+    <!-- <div class="toast-container" id="toastContainer"></div> -->
     <div class="register-container">
         <div class="register-header">
             <h1>Create Account</h1>
@@ -302,7 +302,7 @@
                 const result = await response.json();
 
                 if (response.ok) { // Mã trạng thái 200-299 (Thành công)
-                    showToast('success', '✓ Đăng ký thành công!');
+                    showToast('success', 'Đăng ký thành công!');
                     // Chuyển hướng sang trang đăng nhập
                     setTimeout(() => { window.location.href = 'login.html'; }, 1500); 
                 } else {
