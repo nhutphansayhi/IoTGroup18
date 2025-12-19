@@ -372,7 +372,7 @@
           maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
-            y: { beginAtZero: true, max: 1000 },
+            y: { beginAtZero: true, max: 5000 },
           },
         },
       });
@@ -407,7 +407,7 @@
 
     // Socket.IO - Real-time updates
     socket.on("sensor-update", (data) => {
-      updateDashboard(data);
+      updateDashboard(data);  
     });
 
     socket.on("button-update", (data) => {
@@ -429,6 +429,39 @@
       }
     });
 
+    
+    socket.on("realtime-update", (data) => {
+      // data dự kiến: { btn_status: 1 } hoặc { btn_status: 0 }
+      console.log(data);
+      const distance = data.distance;
+      const light = data.light;
+
+      
+      // Update charts
+      const now = new Date().toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      timeLabels.push(now);
+      distanceData.push(data.distance);
+      lightData.push(data.light);
+
+      // Keep only last 50 data points
+      if (timeLabels.length > 50) {
+        timeLabels.shift();
+        distanceData.shift();
+        lightData.shift();
+      }
+
+      distanceChart.update();
+      lightChart.update();
+
+
+
+    });
+
+
     function updateDashboard(data) {
       // Update status cards
       document.getElementById("distance").textContent = `${data.distance} cm`;
@@ -442,7 +475,7 @@
 
       // Update button text
       updateControlButtons();
-
+      /*
       // Update charts
       const now = new Date().toLocaleTimeString("en-US", {
         hour: "2-digit",
@@ -471,7 +504,7 @@
       if (data.distance <= dangerThreshold) {
         document.querySelector(".badge-danger").style.display =
           "inline-block";
-      }
+      }*/
     }
 
     function loadHistoricalData() {

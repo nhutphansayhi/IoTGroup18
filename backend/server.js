@@ -105,6 +105,28 @@ buttonRef.on("value", (snapshot) => {
     console.log("Lỗi đọc Firebase: " + errorObject.name);
 });
 //PushSafer
+
+const realTimes = db.ref("nhom18/sensorRealtime");
+
+realTimes.on("value", (snapshot) => {
+    const data = snapshot.val(); // Lấy dữ liệu: { btn_status: 1 } hoặc 0
+    // const isOn = data.btn_status === 1;
+    if (!data || data.distance === undefined) return;
+    if (!data || data.light === undefined) return;
+
+    const distance = data.distance;
+    const light = data.light;
+
+    io.emit('realtime-update', {
+        distance: distance,
+        light: light 
+    });
+    console.log("thông số hiện tại distance ", distance );
+    console.log("thông số hiện tại light", light );
+
+
+
+})
 const settingsRef = db.ref("nhom18/settings");
 
 settingsRef.on("value", (snapshot) => {
@@ -191,6 +213,7 @@ settingsRef.on("value", (snapshot) => {
     };
 });
 
+
 // ----------------------------------------------------------
 
 client.on("connect", () => {
@@ -213,6 +236,11 @@ client.on('message', (topic, message) => {
         }
     }
 });
+
+
+
+
+
 
 
 // --- LUỒNG 2: Nhận từ Web -> Đẩy xuống ESP32 ---

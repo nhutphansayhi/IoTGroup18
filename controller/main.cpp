@@ -39,9 +39,9 @@ int lastButtonState = HIGH;      // TRẠNG THÁI CHUẨN: HIGH (Nhả nút) do 
 unsigned long lastSendTime = 0;
 unsigned long lastMqttRetry = 0;
 unsigned long lastWifiRetry = 0;
-const long interval = 50; // Tần suất kiểm tra nút
+long interval = 50; // Tần suất kiểm tra nút
 const long RECONNECT_INTERVAL = 5000; // Thử lại kết nối sau 5s
-
+bool buzzerState = false;
 
 // --- 2. ĐỊNH NGHĨA CHÂN ---
 #define TRIG_PIN 5      
@@ -93,7 +93,7 @@ unsigned long lastDataSend = 0;
 unsigned long lastLightTime = 0;
 unsigned long lastFirebaseRead = 0;
 bool isBuzzerBlinking = false;
-
+unsigned long previousMillis;
 bool lightStatus = false;
 // Sửa lỗi 1: Hàm setup_wifi() không chặn
 void setup_wifi(){
@@ -244,7 +244,7 @@ void streamCallback(FirebaseStream data) {
     // ----------------------------------------------------
     // 2. XỬ LÝ CÀI ĐẶT LẺ (Khi chỉnh từng cái một)
     // ----------------------------------------------------
-    else if (path == "/settings/lightThreshold") {
+    else if (path == "settings/lightThreshold") {
         lightThreshold = data.to<int>(); 
         Serial.print("=> Single Light Update: "); Serial.println(lightThreshold);
         if (proStatus) updateLCD();
@@ -285,6 +285,39 @@ void streamCallback(FirebaseStream data) {
         }
     }
 
+    else if (path == "/") {
+        Serial.println("=> Bulk Update at ROOT (/)");
+        FirebaseJson json = data.jsonObject();
+        FirebaseJsonData result;
+        bool changed = false;
+        
+        
+        // Lưu ý: Key lúc này sẽ kèm theo đường dẫn con
+        if (json.get(result, "/settings/lightThreshold")) {
+            lightThreshold = result.to<int>();
+            Serial.print("   - Light: "); Serial.println(lightThreshold);
+            changed = true;
+        }
+
+        if (json.get(result, "settings/warningDistance")) {
+            warningDistance = result.to<int>();
+            Serial.print("   - Warning: "); Serial.println(warningDistance);
+            changed = true;
+        }
+
+        if (json.get(result, "settings/dangerDistance")) {
+            dangerDistance = result.to<int>();
+            Serial.print("   - Danger: "); Serial.println(dangerDistance);
+            changed = true;
+        }
+
+        if (changed && proStatus) {
+            updateLCD();
+            Serial.println("   LCD Updated from ROOT!");
+        }
+    }
+
+    updateLCD();
 }
 
 
@@ -349,7 +382,7 @@ void shutdownSystem(){
     lcd.print("Smart Parking");
     lcd.setCursor(0,1);
     lcd.print("System OFF");
-    delay(1000);
+    // delay(1000);
 }
 
 
@@ -361,14 +394,7 @@ void startupSystem() {
   lcd.print("Smart Parking");
   lcd.setCursor(0, 1);
   lcd.print("System ON");
-  delay(1000);
-
-//   for (int i = 0; i < sizeof(melody) / sizeof(int); i++) {
-//     ledcWriteTone(0, melody[i]);      // Phát nốt
-//     delay(noteDurations[i]);          // Giữ nốt
-//     ledcWrite(0, 0);                  // Tắt giữa nốt
-//     // delay(50);                        // Nhịp nghỉ nhỏ
-//   }
+  delay(500);
 }
 // Hàm đọc settings từ Firebase
 void readProductStatusFirebase(){
@@ -447,12 +473,13 @@ void setup() {
     if (!Firebase.RTDB.beginStream(&fbdoStream, "/nhom18")) {
         Serial.print("Stream begin failed: ");
         Serial.println(fbdoStream.errorReason());
+        return;
     }
     
     // Gắn callback vào stream
     Firebase.RTDB.setStreamCallback(&fbdoStream, streamCallback, streamTimeoutCallback);
 
-    // readSettingsFromFirebase();
+    readSettingsFromFirebase();
     
     client.setServer(mqtt_server, 1883);
     client.setCallback(callback);
@@ -488,9 +515,11 @@ void loop() {
     } else {
         // ✅ KHI NÚT VẬT LÝ BẤM
         bool currentButtonState = digitalRead(BUTTON_PIN);
+        
         if (currentButtonState != lastButtonState) {
             if (currentButtonState == HIGH){
                 proStatus = ! proStatus;
+                Serial.print(currentButtonState);
                 if (Firebase.ready()) {
                     // Dùng setBool gửi trực tiếp vào đường dẫn con "/status"
                     // Đường dẫn ghép: "/nhom18/pro_status/status"
@@ -532,7 +561,7 @@ void loop() {
             float timeNow=millis();
             while (distance==-1){
                 distance = getDistance();
-                delay(50); //Tránh bị nhiễu
+                
                 if (millis()-timeNow>1000){
                     break;
                 }
@@ -565,6 +594,14 @@ void loop() {
                 String payload;
                 serializeJson(sensorDoc, payload);
                 client.publish("nhom18/data/sensor", payload.c_str());
+                
+                if (Firebase.ready()) {
+                    
+                    
+                    Firebase.RTDB.setFloat(&fbdo, "/nhom18/sensorRealtime/distance", distance);
+                    Firebase.RTDB.setFloat(&fbdo, "/nhom18/sensorRealtime/light", light);
+                }
+
                 
                 lastMqttSend = millis();
             }
