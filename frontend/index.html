@@ -504,41 +504,8 @@
 
       // Update button text
       updateControlButtons();
-      /*
-      // Update charts
-      const now = new Date().toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-
-
-      timeLabels.push(now);
-      distanceData.push(data.distance);
-      lightData.push(data.light);
-
-      // Keep only last 50 data points
-      if (timeLabels.length > 50) {
-        timeLabels.shift();
-        distanceData.shift();
-        lightData.shift();
-      }
-
-      distanceChart.update();
-      lightChart.update();
-
-      // Update danger status
-      const dangerThreshold = parseInt(
-        document.getElementById("dangerDistance").value
-      );
-      if (data.distance <= dangerThreshold) {
-        document.querySelector(".badge-danger").style.display =
-          "inline-block";
-      }*/
+      
     }
-
-
-
-
 
     function setTimeRange(range) {
       document

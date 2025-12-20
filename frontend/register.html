@@ -239,6 +239,17 @@
             </div>
 
             <button type="submit" class="btn-register">Create Account</button>
+            <div class="form-group" id="manufacturerGroup">
+                <label>Manufacturer Code</label>
+                <input 
+                    type="text"
+                    id="manufacturerCode"
+                    placeholder="Enter manufacturer code"
+                    required
+                >
+                <span class="error-message">Invalid manufacturer code</span>
+            </div>
+
         </form>
 
         <div class="register-footer">
@@ -251,6 +262,7 @@
         const password = document.getElementById('password');
         const confirmPassword = document.getElementById('confirmPassword');
         const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+        const MANUFACTURER_CODE = "SPA-2025";
 
         // Validate password match
         function validatePasswords() {
@@ -271,11 +283,15 @@
         });
 
         form.addEventListener('submit', async function(e) { 
+            if (!validateManufacturerCode()) {
+                showToast('error', 'Sai mã nhà sản xuất');
+                return;
+            }
             e.preventDefault();
             
             const submitBtn = document.querySelector('.btn-register');
             submitBtn.disabled = true; // Vô hiệu hóa nút để tránh gửi nhiều lần
-            
+
             if (!validatePasswords()) {
                 submitBtn.disabled = false;
                 return;
@@ -317,6 +333,19 @@
                 submitBtn.disabled = false; // Bật lại nút
             }
         });
+        function validateManufacturerCode() {
+            const input = document.getElementById("manufacturerCode").value.trim();
+            const group = document.getElementById("manufacturerGroup");
+
+            if (input !== MANUFACTURER_CODE) {
+                group.classList.add("error");
+                return false;
+            }
+
+            group.classList.remove("error");
+            return true;
+        }
+
 
         function showToast(type, message) {
             const container = document.getElementById('toastContainer');

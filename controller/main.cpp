@@ -51,7 +51,7 @@ unsigned long lastWifiRetry = 0;
 long interval = 50; // Tần suất kiểm tra nút
 const long RECONNECT_INTERVAL = 5000; // Thử lại kết nối sau 5s
 bool buzzerState = false;
-const unsigned long HOLD_TIME = 2000; // 1 giây
+const unsigned long HOLD_TIME = 3000; // 1 giây
 unsigned long buttonPressTime = 0;
 bool buttonHolding = false;
 bool pressed = false;
@@ -220,12 +220,12 @@ void callback(char* topic, byte* message, unsigned int length){
                 if (strcmp(status, "ON") == 0) 
                 {
                     lightStatus=true;
-                    Serial.print("voooooooo");
+                    
                 }
                 else 
                 {
                     lightStatus=false;
-                    Serial.print("raaaaaaa");
+                    
                 }
             }
             else if (strcmp(device,"BUZZER") == 0){
@@ -579,50 +579,7 @@ void loop() {
         }
     } else {
         
-        // ✅ KHI NÚT VẬT LÝ BẤM
         
-        
-        // if (currentButtonState == LOW && lastButtonState == HIGH) {
-        //     buttonPressTime = millis();
-        //     buttonHolding = true;
-        // }
-
-        // if (currentButtonState == LOW && buttonHolding) {
-        //     Serial.print((millis() - buttonPressTime));
-        //     Serial.println(millis());
-        //     Serial.println(millis());
-        //     Serial.println(millis());
-        //     Serial.println(millis());
-        //     Serial.println(buttonPressTime);
-        //     Serial.println(buttonPressTime);
-        //     Serial.println(buttonPressTime);
-        //     Serial.println(buttonPressTime);
-        //     Serial.println(millis() - buttonPressTime);
-        //     Serial.println(millis() - buttonPressTime);
-        //     Serial.println(millis() - buttonPressTime);
-        //     Serial.println(millis() - buttonPressTime);
-        //     if (millis() - buttonPressTime >= HOLD_TIME) {
-
-                
-        //         buttonHolding = false;   // tránh toggle nhiều lần
-
-        //         proStatus = !proStatus;  //  TOGGLE SAU 1 GIÂY
-
-        //         Serial.print("LONG PRESS TOGGLE: ");
-        //         Serial.println(proStatus);
-
-        //         if (Firebase.ready()) {
-        //             String path = String(FIREBASE_STATUS_PATH) + "/status";
-        //             Firebase.RTDB.setBool(&fbdo, path, proStatus);
-        //         }
-        //     }
-        // }
-
-        // if (currentButtonState == HIGH) {
-        //     buttonHolding = false;
-        //     Serial.print("========================");
-        // }
-
         // lastButtonState = currentButtonState;
         bool currentButtonState = digitalRead(BUTTON_PIN);
         if (currentButtonState != lastButtonState){
@@ -661,28 +618,6 @@ void loop() {
             serializeJson(sensorDoc, payload);
             client.publish("nhom18/data/timeStamp", payload.c_str());
         }
-    
-        
-        // if (currentButtonState != lastButtonState) {
-        //     if (currentButtonState == HIGH){
-        //         proStatus = ! proStatus;
-        //         Serial.print(currentButtonState);
-        //         if (Firebase.ready()) {
-        //             // Dùng setBool gửi trực tiếp vào đường dẫn con "/status"
-        //             // Đường dẫn ghép: "/nhom18/pro_status/status"
-        //             String path = String(FIREBASE_STATUS_PATH) + "/status";
-                    
-        //             if (Firebase.RTDB.setBool(&fbdo, path, proStatus)) {
-        //                 Serial.print("Da gui thanh cong: ");
-        //                 Serial.println(proStatus);
-        //             } else {
-        //                 Serial.print("Loi gui Firebase: ");
-        //                 Serial.println(fbdo.errorReason());
-        //             }
-        //         }
-        //     }
-        //     lastButtonState = currentButtonState;
-        // }
         
         // 2. MQTT handling
         if (!client.connected()) {
@@ -716,17 +651,6 @@ void loop() {
             currentDistanceForBuzzer = distance;
             
             light=analogRead(LDR_PIN);
-            // bao dong khi qua gan 
-            // if (distance <= 20){
-            //     buzzerWarring(0);
-            // }
-            // else if (distance <=50){
-            //     buzzerWarring(1);
-            // }
-            // else 
-            //     buzzerWarring(2);
-
-            
             
             // Gửi sensor
             if (millis() - lastMqttSend > 2000 && client.connected()) {
@@ -744,7 +668,6 @@ void loop() {
                 client.publish("nhom18/data/sensor", payload.c_str());
                 
                 if (Firebase.ready()) {
-                    
                     
                     Firebase.RTDB.setFloat(&fbdo, "/nhom18/sensorRealtime/distance", distance);
                     Firebase.RTDB.setFloat(&fbdo, "/nhom18/sensorRealtime/light", light);
@@ -766,11 +689,7 @@ void loop() {
                 lastLightTime = millis();
             }
             
-            // Đọc settings (1 lần mỗi 5 giây, không ưu tiên cao)
-            // if (millis() - lastSettingsRead > 5000 && Firebase.ready()) {
-            //     readSettingsFromFirebase();
-            //     lastSettingsRead = millis();
-            // }
+            
             
         } else {  // proStatus == false
             if (flag == true) {
