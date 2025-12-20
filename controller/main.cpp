@@ -51,6 +51,11 @@ unsigned long lastWifiRetry = 0;
 long interval = 50; // Tần suất kiểm tra nút
 const long RECONNECT_INTERVAL = 5000; // Thử lại kết nối sau 5s
 bool buzzerState = false;
+const unsigned long HOLD_TIME = 2000; // 1 giây
+unsigned long buttonPressTime = 0;
+bool buttonHolding = false;
+bool pressed = false;
+
 
 // --- 2. ĐỊNH NGHĨA CHÂN ---
 #define TRIG_PIN 5      
@@ -115,19 +120,21 @@ void TaskBuzzer(void * parameter) {
     // (Bạn cần truyền biến proStatus vào đây hoặc check logic blinking ở đây)
     // Để đơn giản, ta giả sử luôn check khoảng cách:
     
-    if (currentDistanceForBuzzer <= 20 && currentDistanceForBuzzer > 0) {
-      // --- CẢNH BÁO KHẨN CẤP (Kêu nhanh) ---
-      digitalWrite(BUZZER_PIN, HIGH);
-      vTaskDelay(100 / portTICK_PERIOD_MS); // Bật 100ms
-      digitalWrite(BUZZER_PIN, LOW);
-      vTaskDelay(100 / portTICK_PERIOD_MS); // Tắt 100ms
-    } 
-    else if (currentDistanceForBuzzer <= 50 && currentDistanceForBuzzer > 0) {
+    if (currentDistanceForBuzzer <= dangerDistance && currentDistanceForBuzzer > 0) {
       // --- CẢNH BÁO TỪ XA (Kêu chậm) ---
+      Serial.print("{}{}{}{}{}{}{}{}");
       digitalWrite(BUZZER_PIN, HIGH);
-      vTaskDelay(500 / portTICK_PERIOD_MS); // Bật 500ms
+      vTaskDelay(100 / portTICK_PERIOD_MS); // Bật 500ms
       digitalWrite(BUZZER_PIN, LOW);
-      vTaskDelay(500 / portTICK_PERIOD_MS); // Tắt 500ms
+      vTaskDelay(100 / portTICK_PERIOD_MS); // Tắt 500ms
+    } 
+    else if (currentDistanceForBuzzer <= warningDistance && currentDistanceForBuzzer > 0) {
+      // --- CẢNH BÁO KHẨN CẤP (Kêu nhanh) ---
+      Serial.print(">>>>>>>>>>>>>");
+      digitalWrite(BUZZER_PIN, HIGH);
+      vTaskDelay(1000 / portTICK_PERIOD_MS); // Bật 100ms
+      digitalWrite(BUZZER_PIN, LOW);
+      vTaskDelay(1000 / portTICK_PERIOD_MS); // Tắt 100ms
     } 
     else {
       // --- AN TOÀN ---
@@ -566,29 +573,98 @@ void loop() {
         lastMqttRetry = millis();//serviceAccountKey.json
         }
     } else {
-        // ✅ KHI NÚT VẬT LÝ BẤM
-        bool currentButtonState = digitalRead(BUTTON_PIN);
         
-        if (currentButtonState != lastButtonState) {
-            if (currentButtonState == HIGH){
-                proStatus = ! proStatus;
-                Serial.print(currentButtonState);
+        // ✅ KHI NÚT VẬT LÝ BẤM
+        
+        
+        // if (currentButtonState == LOW && lastButtonState == HIGH) {
+        //     buttonPressTime = millis();
+        //     buttonHolding = true;
+        // }
+
+        // if (currentButtonState == LOW && buttonHolding) {
+        //     Serial.print((millis() - buttonPressTime));
+        //     Serial.println(millis());
+        //     Serial.println(millis());
+        //     Serial.println(millis());
+        //     Serial.println(millis());
+        //     Serial.println(buttonPressTime);
+        //     Serial.println(buttonPressTime);
+        //     Serial.println(buttonPressTime);
+        //     Serial.println(buttonPressTime);
+        //     Serial.println(millis() - buttonPressTime);
+        //     Serial.println(millis() - buttonPressTime);
+        //     Serial.println(millis() - buttonPressTime);
+        //     Serial.println(millis() - buttonPressTime);
+        //     if (millis() - buttonPressTime >= HOLD_TIME) {
+
+                
+        //         buttonHolding = false;   // tránh toggle nhiều lần
+
+        //         proStatus = !proStatus;  //  TOGGLE SAU 1 GIÂY
+
+        //         Serial.print("LONG PRESS TOGGLE: ");
+        //         Serial.println(proStatus);
+
+        //         if (Firebase.ready()) {
+        //             String path = String(FIREBASE_STATUS_PATH) + "/status";
+        //             Firebase.RTDB.setBool(&fbdo, path, proStatus);
+        //         }
+        //     }
+        // }
+
+        // if (currentButtonState == HIGH) {
+        //     buttonHolding = false;
+        //     Serial.print("========================");
+        // }
+
+        // lastButtonState = currentButtonState;
+        bool currentButtonState = digitalRead(BUTTON_PIN);
+        if (currentButtonState != lastButtonState){
+            buttonPressTime = millis();
+            lastButtonState = currentButtonState;
+            if(currentButtonState == HIGH)
+                pressed=true;
+
+        }
+
+        if(currentButtonState == HIGH){
+            if (millis() - buttonPressTime > HOLD_TIME){
+                
+                buttonPressTime = millis();
+                if (pressed)
+                {
+                    proStatus = !proStatus;
+                    pressed=false;
+                }
+                Serial.println("button long pressed");
                 if (Firebase.ready()) {
-                    // Dùng setBool gửi trực tiếp vào đường dẫn con "/status"
-                    // Đường dẫn ghép: "/nhom18/pro_status/status"
                     String path = String(FIREBASE_STATUS_PATH) + "/status";
-                    
-                    if (Firebase.RTDB.setBool(&fbdo, path, proStatus)) {
-                        Serial.print("Da gui thanh cong: ");
-                        Serial.println(proStatus);
-                    } else {
-                        Serial.print("Loi gui Firebase: ");
-                        Serial.println(fbdo.errorReason());
-                    }
+                    Firebase.RTDB.setBool(&fbdo, path, proStatus);
                 }
             }
-            lastButtonState = currentButtonState;
         }
+        
+        // if (currentButtonState != lastButtonState) {
+        //     if (currentButtonState == HIGH){
+        //         proStatus = ! proStatus;
+        //         Serial.print(currentButtonState);
+        //         if (Firebase.ready()) {
+        //             // Dùng setBool gửi trực tiếp vào đường dẫn con "/status"
+        //             // Đường dẫn ghép: "/nhom18/pro_status/status"
+        //             String path = String(FIREBASE_STATUS_PATH) + "/status";
+                    
+        //             if (Firebase.RTDB.setBool(&fbdo, path, proStatus)) {
+        //                 Serial.print("Da gui thanh cong: ");
+        //                 Serial.println(proStatus);
+        //             } else {
+        //                 Serial.print("Loi gui Firebase: ");
+        //                 Serial.println(fbdo.errorReason());
+        //             }
+        //         }
+        //     }
+        //     lastButtonState = currentButtonState;
+        // }
         
         // 2. MQTT handling
         if (!client.connected()) {
