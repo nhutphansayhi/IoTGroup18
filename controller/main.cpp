@@ -55,7 +55,8 @@ const unsigned long HOLD_TIME = 2000; // 1 giây
 unsigned long buttonPressTime = 0;
 bool buttonHolding = false;
 bool pressed = false;
-
+float light = 0;
+float distance = 0;
 
 // --- 2. ĐỊNH NGHĨA CHÂN ---
 #define TRIG_PIN 5      
@@ -519,12 +520,16 @@ void setup() {
     // KHỞI TẠO MẠNG
     setup_wifi();
 
+    fbdo.setBSSLBufferSize(4096,1024);
+    fbdoStream.setBSSLBufferSize(4096,1024);
+
     if (!Firebase.RTDB.beginStream(&fbdoStream, "/nhom18")) {
         Serial.print("Stream begin failed: ");
         Serial.println(fbdoStream.errorReason());
         return;
     }
     
+
     // Gắn callback vào stream
     Firebase.RTDB.setStreamCallback(&fbdoStream, streamCallback, streamTimeoutCallback);
 
@@ -629,6 +634,7 @@ void loop() {
         }
 
         if(currentButtonState == HIGH){
+            
             if (millis() - buttonPressTime > HOLD_TIME){
                 
                 buttonPressTime = millis();
@@ -643,7 +649,19 @@ void loop() {
                     Firebase.RTDB.setBool(&fbdo, path, proStatus);
                 }
             }
+            // Gửi timestamp
+            
         }
+        else {
+            StaticJsonDocument<200> sensorDoc;
+            sensorDoc["distance"] = distance;
+            sensorDoc["light"] = light;
+
+            String payload;
+            serializeJson(sensorDoc, payload);
+            client.publish("nhom18/data/timeStamp", payload.c_str());
+        }
+    
         
         // if (currentButtonState != lastButtonState) {
         //     if (currentButtonState == HIGH){
@@ -686,7 +704,7 @@ void loop() {
             
             
 
-            float distance = getDistance();
+            distance = getDistance();
             float timeNow=millis();
             while (distance==-1){
                 distance = getDistance();
@@ -697,7 +715,7 @@ void loop() {
             }
             currentDistanceForBuzzer = distance;
             
-            float light=analogRead(LDR_PIN);
+            light=analogRead(LDR_PIN);
             // bao dong khi qua gan 
             // if (distance <= 20){
             //     buzzerWarring(0);
@@ -758,6 +776,9 @@ void loop() {
             if (flag == true) {
                 shutdownSystem();
                 flag = false;
+                currentDistanceForBuzzer = -1;
+
+                
             }
         }
 

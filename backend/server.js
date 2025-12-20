@@ -11,7 +11,7 @@ const serviceAccount = require("./serviceAccountKey.json");
 const Pushsafer = require("pushsafer-notifications");
 
 const pushsafer = new Pushsafer({
-    k: "V8msZX5h1DtIak5fvP1y" // ← key của bạn
+    k: "ZX1Yh6xxkqyU818uQtkj" // ← key của bạn
 });
 
 // Nodemailer Config
@@ -100,11 +100,32 @@ buttonRef.on("value", (snapshot) => {
     io.emit('button-update', { productOn: proState });
     console.log("Trạng thái nút", proState);
 
+    // --- PUSHSAFER NOTICE (System Status) ---
+    // Chỉ gửi khi trạng thái thực sự thay đổi (để tránh spam khi khởi động server)
+    if (proState !== productOn) {
+        productOn = proState; // Cập nhật trạng thái
+
+        const statusMsg = proState ? "🟢 System Powered ON" : "🔴 System Powered OFF";
+
+        pushsafer.send(
+            {
+                m: statusMsg,
+                t: "Smart Parking Status",
+                s: 11, // sound
+                v: 1,  // vibration
+                i: 5   // icon
+            },
+            (err, result) => {
+                if (err) console.error("Pushsafer error:", err);
+                else console.log("System Status Push sent:", result);
+            }
+        );
+    }
+
 
 }, (errorObject) => {
     console.log("Lỗi đọc Firebase: " + errorObject.name);
 });
-//PushSafer
 
 const realTimes = db.ref("nhom18/sensorRealtime");
 
@@ -162,21 +183,8 @@ settingsRef.on("value", (snapshot) => {
         );
     }
 
-    // Nếu có ít nhất 1 thay đổi → gửi push
+    // Nếu có ít nhất 1 thay đổi → gửi email
     if (messages.length > 0) {
-        pushsafer.send(
-            {
-                m: messages.join("\n"),
-                t: "Smart Parking Settings Updated",
-                s: 11, // sound
-                v: 1,  // vibration
-                i: 5   // icon
-            },
-            (err, result) => {
-                if (err) console.error("Pushsafer error:", err);
-                else console.log("Push notification sent:", result);
-            }
-        );
 
         // --- GỬI EMAIL ---
         const receiver = data.lastUser || 'default-admin@gmail.com'; 
@@ -231,9 +239,25 @@ client.on('message', (topic, message) => {
             const data = JSON.parse(message.toString());
             console.log('Data từ ESP:', data);
             io.emit('sensor-update', data); // Gửi socket xuống Web
+
+            // --- QUAN TRỌNG: Lưu lịch sử để thỏa yêu cầu "Lưu trữ theo thời gian" ---
+            // const historyRef = db.ref("nhom18/history");
+            // historyRef.push({
+            //     distance: data.distance,
+            //     light: data.light,
+            //     timestamp: admin.database.ServerValue.TIMESTAMP
+            // });
         } catch (e) {
             console.error("Lỗi parse JSON:", e);
         }
+    }
+    if (topic === 'nhom18/data/timestamp') {
+        const historyRef = db.ref("nhom18/history");
+        historyRef.push({
+            distance: data.distance,
+            light: data.light,
+            timestamp: admin.database.ServerValue.TIMESTAMP
+        });
     }
 });
 

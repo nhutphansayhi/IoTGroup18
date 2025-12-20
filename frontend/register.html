@@ -180,7 +180,7 @@
     </style>
 </head>
 <body>
-    <!-- <div class="toast-container" id="toastContainer"></div> -->
+    <div class="toast-container" id="toastContainer"></div>
     <div class="register-container">
         <div class="register-header">
             <h1>Create Account</h1>
@@ -275,7 +275,7 @@
             
             const submitBtn = document.querySelector('.btn-register');
             submitBtn.disabled = true; // Vô hiệu hóa nút để tránh gửi nhiều lần
-
+            
             if (!validatePasswords()) {
                 submitBtn.disabled = false;
                 return;

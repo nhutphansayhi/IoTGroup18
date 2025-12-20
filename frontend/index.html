@@ -12,7 +12,7 @@
 
 <body>
   <!-- Toast Container -->
-  <div class="toast-container" id="toastContainer"></div>
+  <div class="toast-contfainer" id="toastContainer"></div>
 
   <!-- Header -->
   <header class="header">
@@ -216,6 +216,53 @@
     }
     window.loadSettingsFromFirebase = loadSettingsFromFirebase;
 
+    // --- 4. HÀM TẢI LỊCH SỬ (Mới thêm lại) ---
+    async function loadHistoricalData() {
+      // Import dynamic các hàm Firebase Database từ module
+      const { query, limitToLast, orderByKey, get, ref } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js");
+
+      // Xóa dữ liệu cũ trong biến toàn cục window
+      window.distanceData.length = 0;
+      window.lightData.length = 0;
+      window.timeLabels.length = 0;
+      
+      const historyRef = ref(database, 'nhom18/history');
+      // Lấy 50 tin mới nhất
+      const q = query(historyRef, orderByKey(), limitToLast(50));
+
+      get(q).then((snapshot) => {
+        if (snapshot.exists()) {
+          snapshot.forEach((childSnapshot) => {
+            const data = childSnapshot.val();
+            
+            // Format timestamp
+            let timeStr = "";
+            if (data.timestamp) {
+                const date = new Date(data.timestamp);
+                timeStr = date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second:'2-digit' });
+            }
+
+            // Đẩy vào biến toàn cục window
+            window.distanceData.push(data.distance);
+            window.lightData.push(data.light);
+            window.timeLabels.push(timeStr);
+          });
+          
+          // Cập nhật biểu đồ toàn cục
+          if(window.distanceChart) window.distanceChart.update();
+          if(window.lightChart) window.lightChart.update();
+          
+          console.log("Loaded " + window.distanceData.length + " history points.");
+        } else {
+          console.log("No history data available.");
+        }
+      }).catch((error) => {
+        console.error("History Error:", error);
+      });
+    }
+    // Mở khóa ra global
+    window.loadHistoricalData = loadHistoricalData;
+
 
 
     window.saveThreshold = function () {
@@ -259,10 +306,14 @@
   </script>
   <script>
     const socket = io();
-    let distanceChart, lightChart, dangerChart;
-    let distanceData = [];
-    let lightData = [];
-    let timeLabels = [];
+    // Gán vào window để module script truy cập được
+    window.distanceChart = null;
+    window.lightChart = null;
+    window.dangerChart = null;
+    
+    window.distanceData = [];
+    window.lightData = [];
+    window.timeLabels = [];
     let buzzerState = true; // true = ON, false = OFF
     let lampState = false; // true = ON, false = OFF
 
@@ -485,17 +536,7 @@
       }*/
     }
 
-    function loadHistoricalData() {
-      // Generate sample historical data
-      for (let i = 0; i < 24; i++) {
-        const hour = i.toString().padStart(2, "0") + ":00";
-        timeLabels.push(hour);
-        distanceData.push(Math.floor(Math.random() * 100) + 20);
-        lightData.push(Math.floor(Math.random() * 800) + 200);
-      }
-      distanceChart.update();
-      lightChart.update();
-    }
+
 
 
 
