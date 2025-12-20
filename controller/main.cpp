@@ -208,14 +208,16 @@ void callback(char* topic, byte* message, unsigned int length){
             const char* status = doc["status"]; 
             
             // CHỈ XỬ LÝ LỆNH NẾU CHÚNG TỒN TẠI
-            if (strcmp(device,"RELAY") == 0){
+            if (strcmp(device,"LAMP") == 0){
                 if (strcmp(status, "ON") == 0) 
                 {
                     lightStatus=true;
+                    Serial.print("voooooooo");
                 }
                 else 
                 {
                     lightStatus=false;
+                    Serial.print("raaaaaaa");
                 }
             }
             else if (strcmp(device,"BUZZER") == 0){
@@ -660,13 +662,13 @@ void loop() {
             
             // --- BẬT ĐÈN NẾU TRỜI TỐI ---
             if (millis() - lastLightTime > 500) {
-                if (!lightStatus) {
-                    if (light > lightThreshold) {
-                        digitalWrite(RELAY_PIN, HIGH);
-                    } else {
-                        digitalWrite(RELAY_PIN, LOW);
-                    }
+                
+                if (light > lightThreshold) {
+                    digitalWrite(RELAY_PIN, LOW);
+                } else {
+                    digitalWrite(RELAY_PIN, HIGH);
                 }
+                
                 lastLightTime = millis();
             }
             
@@ -696,11 +698,20 @@ void loop() {
         else 
             digitalWrite(BUZZER_PIN,LOW);
 
-        if ( lightStatus && proStatus == false){
-            digitalWrite(RELAY_PIN, HIGH);
+        if (lightStatus && proStatus == false){
+            digitalWrite(RELAY_PIN,HIGH);
         }
-        else {
+        if (!lightStatus && proStatus == false){
             digitalWrite(RELAY_PIN,LOW);
         }
+
+            
+
+        // if ( lightStatus && proStatus == false){
+        //     digitalWrite(RELAY_PIN, HIGH);
+        // }
+        // else if (lightStatus != 0){
+        //     digitalWrite(RELAY_PIN,LOW);
+        // }
     }
 }

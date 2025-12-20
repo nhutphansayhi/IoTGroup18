@@ -222,10 +222,10 @@
       const threshold = document.getElementById("lightThreshold").value;
       
       const updates = {};
-      updates['nhom18/settings/lightThreshold'] = parseInt(threshold);
-      updates['nhom18/settings/lastUser'] = currentUserEmail;
+      updates['lightThreshold'] = parseInt(threshold);
+      updates['lastUser'] = currentUserEmail;
 
-      update(ref(database), updates)
+      update(ref(database, 'nhom18/settings'), updates)
         .then(() => {
           console.log("Light threshold saved to Firebase:", threshold);
           showToast('success', '✓ Light threshold saved!');
@@ -513,21 +513,44 @@
     }
 
     function toggleBuzzer() {
+
+      const currentStatusText =
+      document.getElementById("buzzerStatus").textContent.trim();
+
+
+  // Đảo trạng thái
+
+
       buzzerState = !buzzerState;
       socket.emit("control-cmd", {
         device: "BUZZER",
         status: buzzerState ? "ON" : "OFF",
       });
+
+      document.getElementById("buzzerStatus").textContent =
+      buzzerState ? "ON" : "OFF";
+
+
       updateControlButtons();
+
+
     }
 
     function toggleLamp() {
-      lampState = !lampState;
+
+      const currentStatusText =
+      document.getElementById("lampStatus").textContent.trim();
+
+      lampStatus = !lampStatus;
       socket.emit("control-cmd", {
         device: "LAMP",
-        status: lampState ? "ON" : "OFF",
+        status: lampStatus ? "ON" : "OFF",
       });
       updateControlButtons();
+
+      document.getElementById("lampStatus").textContent =
+      lampStatus ? "ON" : "OFF";
+
     }
 
     function updateControlButtons() {
@@ -544,7 +567,7 @@
         buzzerBtn.classList.add("btn-control-secondary");
       }
 
-      if (lampState) {
+      if (lampStatus) {
         lampBtn.textContent = "Turn Off";
         lampBtn.classList.remove("btn-control-secondary");
         lampBtn.classList.add("btn-control-primary");
