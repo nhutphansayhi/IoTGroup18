@@ -32,7 +32,7 @@
       <div class="status-card">
         <h3 class="card-title">Distance to Obstacle</h3>
         <div class="card-value" id="distance">12 cm</div>
-        <span class="badge badge-danger">DANGER</span>
+
       </div>
 
       <div class="status-card">
@@ -43,7 +43,7 @@
       <div class="status-card">
         <h3 class="card-title">Buzzer Status</h3>
         <div class="card-value" id="buzzerStatus">ON</div>
-        <span class="badge badge-active">ACTIVE</span>
+
         <button class="btn-control btn-control-primary" onclick="toggleBuzzer()">
           Turn Off
         </button>
@@ -52,25 +52,14 @@
       <div class="status-card">
         <h3 class="card-title">Garage Lamp Status</h3>
         <div class="card-value" id="lampStatus">OFF</div>
-        <span class="badge badge-off">OFF</span>
+
         <button class="btn-control btn-control-secondary" onclick="toggleLamp()">
           Turn On
         </button>
       </div>
     </div>
 
-    <!-- Time Range Buttons -->
-    <div class="time-filter">
-      <button class="btn-time" onclick="setTimeRange('1h')">
-        Last 1 hour
-      </button>
-      <button class="btn-time active" onclick="setTimeRange('24h')">
-        Last 24 hours
-      </button>
-      <button class="btn-time" onclick="setTimeRange('7d')">
-        Last 7 days
-      </button>
-    </div>
+    <!-- Time Range Buttons Removed -->
 
     <!-- Charts Section -->
     <div class="charts-grid">
@@ -102,18 +91,7 @@
         </div>
       </div>
 
-      <div class="control-card">
-        <h3 class="control-title">Remote Activation</h3>
-        <div class="status-info">
-          <p class="status-note">
-            Status: The parking assist system is currently
-            <strong>INACTIVE</strong>
-          </p>
-        </div>
-        <button class="btn-primary" onclick="activateSystem()">
-          Activate System
-        </button>
-      </div>
+      <!-- Remote Activation Card Removed -->
 
       <div class="control-card">
         <h3 class="control-title">Light Control</h3>

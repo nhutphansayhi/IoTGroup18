@@ -6,6 +6,8 @@
 #include <LiquidCrystal_I2C.h>  // LCD I2C
 #include <Wire.h>
 
+
+
 #define FIREBASE_HOST "https://smartsupportcardevice-default-rtdb.firebaseio.com"
 #define FIREBASE_AUTH "GiZP3gMeY8tM7n72Qis06Fe6aaAwTaPEEQro7Ga2"
 const char* FIREBASE_STATUS_PATH = "/nhom18/pro_status"; 
@@ -26,11 +28,18 @@ void callback(char* topic, byte* message, unsigned int length);
 
 // --- 1. CẤU HÌNH WIFI & MQTT ---
 
+// const char* ssid = "THREE O'CLOCK"; 
+// const char* password = "3open24h";
 const char* ssid = "Thien Nhan^.^"; 
 const char* password = "22092005.";
 const char* mqtt_server = "broker.hivemq.com";
 const char* mqtt_topic = "nhom18/control";
 const char* mqtt_data_topic = "nhom18/data/status";
+
+
+// Biến dùng chung giữa 2 luồng (phải có chữ volatile)
+volatile int currentDistanceForBuzzer = 100; // Mặc định an toàn
+TaskHandle_t TaskBuzzerHandle; // Quản lý luồng còi
 
 
 
@@ -95,6 +104,39 @@ unsigned long lastFirebaseRead = 0;
 bool isBuzzerBlinking = false;
 unsigned long previousMillis;
 bool lightStatus = false;
+
+
+
+// Đây là hàm sẽ chạy song song với loop(), không bị ảnh hưởng bởi delay
+void TaskBuzzer(void * parameter) {
+  for (;;) { // Vòng lặp vô hạn của luồng này
+    
+    // Nếu hệ thống đang tắt (proStatus == false) thì tắt còi
+    // (Bạn cần truyền biến proStatus vào đây hoặc check logic blinking ở đây)
+    // Để đơn giản, ta giả sử luôn check khoảng cách:
+    
+    if (currentDistanceForBuzzer <= 20 && currentDistanceForBuzzer > 0) {
+      // --- CẢNH BÁO KHẨN CẤP (Kêu nhanh) ---
+      digitalWrite(BUZZER_PIN, HIGH);
+      vTaskDelay(100 / portTICK_PERIOD_MS); // Bật 100ms
+      digitalWrite(BUZZER_PIN, LOW);
+      vTaskDelay(100 / portTICK_PERIOD_MS); // Tắt 100ms
+    } 
+    else if (currentDistanceForBuzzer <= 50 && currentDistanceForBuzzer > 0) {
+      // --- CẢNH BÁO TỪ XA (Kêu chậm) ---
+      digitalWrite(BUZZER_PIN, HIGH);
+      vTaskDelay(500 / portTICK_PERIOD_MS); // Bật 500ms
+      digitalWrite(BUZZER_PIN, LOW);
+      vTaskDelay(500 / portTICK_PERIOD_MS); // Tắt 500ms
+    } 
+    else {
+      // --- AN TOÀN ---
+      digitalWrite(BUZZER_PIN, LOW);
+      vTaskDelay(100 / portTICK_PERIOD_MS); // Nghỉ 100ms để đỡ tốn CPU
+    }
+  }
+}
+
 // Sửa lỗi 1: Hàm setup_wifi() không chặn
 void setup_wifi(){
     delay(10);
@@ -169,12 +211,10 @@ void callback(char* topic, byte* message, unsigned int length){
             if (strcmp(device,"RELAY") == 0){
                 if (strcmp(status, "ON") == 0) 
                 {
-                    digitalWrite(RELAY_PIN, HIGH);
                     lightStatus=true;
                 }
                 else 
                 {
-                    digitalWrite(RELAY_PIN, LOW);
                     lightStatus=false;
                 }
             }
@@ -327,25 +367,25 @@ void streamTimeoutCallback(bool timeout) {
     }
 }
 
-void buzzerWarring(int level) {
-  // Chọn chu kỳ theo level
-  if (level == 2) {
-    digitalWrite(BUZZER_PIN, LOW); // Không cảnh báo
-    return;
-  } else if (level == 1) {
-    interval = 1000;  // Cảnh báo bình thường: 1s đổi trạng thái
-  } else if (level == 0) {
-    interval = 250;   // Cảnh báo khẩn cấp: 0.25s đổi trạng thái
-  }
+// void buzzerWarring(int level) {
+//   // Chọn chu kỳ theo level
+//   if (level == 2) {
+//     digitalWrite(BUZZER_PIN, LOW); // Không cảnh báo
+//     return;
+//   } else if (level == 1) {
+//     interval = 1000;  // Cảnh báo bình thường: 1s đổi trạng thái
+//   } else if (level == 0) {
+//     interval = 500;   // Cảnh báo khẩn cấp: 0.25s đổi trạng thái
+//   }
 
-  unsigned long currentMillis = millis();
+//   unsigned long currentMillis = millis();
 
-  if (currentMillis - previousMillis >= interval) {
-    previousMillis = currentMillis;
-    buzzerState = !buzzerState;
-    digitalWrite(BUZZER_PIN, buzzerState);
-  }
-}
+//   if (currentMillis - previousMillis >= interval) {
+//     previousMillis = currentMillis;
+//     buzzerState = !buzzerState;
+//     digitalWrite(BUZZER_PIN, buzzerState);
+//   }
+// }
 
 
 // Hàm nhay đèn "nguy hiểm"
@@ -487,6 +527,17 @@ void setup() {
     // ledcSetup(0, 1000, 8);
     // ledcAttachPin(BUZZER_PIN, 0);
     
+
+
+    // Khởi chạy TaskBuzzer trên Core 0
+xTaskCreatePinnedToCore(
+  TaskBuzzer,    // Hàm task
+  "TaskBuzzer",  // Tên task
+  10000,         // Stack size
+  NULL,          // Tham số
+  1,             // Độ ưu tiên
+  &TaskBuzzerHandle, // Handle
+  0);            // Chạy trên Core 0
 }
 
 void loop() {
@@ -566,22 +617,23 @@ void loop() {
                     break;
                 }
             }
+            currentDistanceForBuzzer = distance;
             
             float light=analogRead(LDR_PIN);
             // bao dong khi qua gan 
-            if (distance <= 20){
-                buzzerWarring(0);
-            }
-            else if (distance <=50){
-                buzzerWarring(1);
-            }
-            else 
-                buzzerWarring(2);
+            // if (distance <= 20){
+            //     buzzerWarring(0);
+            // }
+            // else if (distance <=50){
+            //     buzzerWarring(1);
+            // }
+            // else 
+            //     buzzerWarring(2);
 
             
             
             // Gửi sensor
-            if (millis() - lastMqttSend > 500 && client.connected()) {
+            if (millis() - lastMqttSend > 2000 && client.connected()) {
                 
 
                 Serial.println(distance);
@@ -605,11 +657,11 @@ void loop() {
                 
                 lastMqttSend = millis();
             }
-
+            
             // --- BẬT ĐÈN NẾU TRỜI TỐI ---
             if (millis() - lastLightTime > 500) {
                 if (!lightStatus) {
-                    if (light < lightThreshold) {
+                    if (light > lightThreshold) {
                         digitalWrite(RELAY_PIN, HIGH);
                     } else {
                         digitalWrite(RELAY_PIN, LOW);
@@ -644,6 +696,11 @@ void loop() {
         else 
             digitalWrite(BUZZER_PIN,LOW);
 
-        
+        if ( lightStatus && proStatus == false){
+            digitalWrite(RELAY_PIN, HIGH);
+        }
+        else {
+            digitalWrite(RELAY_PIN,LOW);
+        }
     }
 }
